@@ -21,2030 +21,348 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Write project files
+      - name: Unpack project
         run: |
-          mkdir -p app/src/main/java/com/abufatima/app app/src/main/res/xml app/src/main/res/mipmap app/src/main/res/mipmap-anydpi-v26 app/src/main/res/drawable
-
-          cat > settings.gradle <<'EOF'
-          include ':app'
+          base64 -d > project.tar.xz <<'EOF'
+          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
+          BFla
           EOF
-
-          cat > build.gradle <<'EOF'
-          buildscript {
-              repositories { google(); mavenCentral() }
-              dependencies {
-                  classpath 'com.android.tools.build:gradle:8.1.4'
-                  classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.22'
-              }
-          }
-          allprojects {
-              repositories { google(); mavenCentral() }
-          }
-          EOF
-
-          cat > gradle.properties <<'EOF'
-          android.useAndroidX=true
-          android.enableJetifier=true
-          org.gradle.jvmargs=-Xmx3g
-          EOF
-
-          cat > app/build.gradle <<'EOF'
-          apply plugin: 'com.android.application'
-          apply plugin: 'kotlin-android'
-
-          def runNumber = Integer.parseInt(System.getenv("GITHUB_RUN_NUMBER") ?: "1")
-
-          android {
-              namespace 'com.abufatima.app'
-              compileSdk 34
-              defaultConfig {
-                  applicationId "com.abufatima.app"
-                  minSdk 21
-                  targetSdk 34
-                  versionCode runNumber
-                  versionName "1." + runNumber
-              }
-              compileOptions {
-                  sourceCompatibility JavaVersion.VERSION_17
-                  targetCompatibility JavaVersion.VERSION_17
-              }
-              kotlinOptions {
-                  jvmTarget = '17'
-              }
-              signingConfigs {
-                  release {
-                      storeFile file(System.getenv("KS_PATH"))
-                      storePassword System.getenv("KS_PASS")
-                      keyAlias "abufatima"
-                      keyPassword System.getenv("KS_PASS")
-                  }
-              }
-              buildTypes {
-                  release {
-                      minifyEnabled false
-                      signingConfig signingConfigs.release
-                  }
-              }
-              lint {
-                  checkReleaseBuilds false
-                  abortOnError false
-              }
-          }
-
-          dependencies {
-              implementation 'androidx.core:core-ktx:1.12.0'
-              implementation 'androidx.appcompat:appcompat:1.6.1'
-              implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.9.22'
-              implementation platform('com.google.firebase:firebase-bom:32.7.0')
-              implementation 'com.google.firebase:firebase-auth'
-              implementation 'com.google.firebase:firebase-firestore'
-              implementation 'androidx.work:work-runtime:2.9.0'
-          }
-          EOF
-
-          cat > app/src/main/AndroidManifest.xml <<'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-
-              <uses-permission android:name="android.permission.INTERNET" />
-              <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-              <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
-              <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-
-              <application
-                  android:label="أستاذ حيدر"
-                  android:icon="@mipmap/ic_launcher"
-                  android:roundIcon="@mipmap/ic_launcher"
-                  android:supportsRtl="true"
-                  android:theme="@style/Theme.AppCompat.Light.NoActionBar">
-
-                  <activity
-                      android:name=".MainActivity"
-                      android:exported="true"
-                      android:windowSoftInputMode="adjustResize">
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LAUNCHER" />
-                      </intent-filter>
-                  </activity>
-
-                  <provider
-                      android:name="androidx.core.content.FileProvider"
-                      android:authorities="${applicationId}.files"
-                      android:exported="false"
-                      android:grantUriPermissions="true">
-                      <meta-data
-                          android:name="android.support.FILE_PROVIDER_PATHS"
-                          android:resource="@xml/file_paths" />
-                  </provider>
-              </application>
-          </manifest>
-          EOF
-
-          cat > app/src/main/res/xml/file_paths.xml <<'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <paths>
-              <cache-path name="cache" path="." />
-          </paths>
-          EOF
-
-          cat > app/src/main/res/mipmap/ic_launcher.xml <<'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <vector xmlns:android="http://schemas.android.com/apk/res/android"
-              android:width="48dp"
-              android:height="48dp"
-              android:viewportWidth="512"
-              android:viewportHeight="512">
-              <path android:fillColor="#1E3560" android:pathData="M112,0 H400 A112,112 0 0 1 512,112 V400 A112,112 0 0 1 400,512 H112 A112,112 0 0 1 0,400 V112 A112,112 0 0 1 112,0 Z" />
-              <group android:pivotX="240" android:pivotY="268" android:rotation="-6">
-                  <path android:fillColor="#FFFFFF" android:pathData="M152,112 H336 A24,24 0 0 1 360,136 V388 A24,24 0 0 1 336,412 H152 A24,24 0 0 1 128,388 V136 A24,24 0 0 1 152,112 Z" />
-                  <path android:strokeColor="#CFDDEB" android:strokeWidth="7" android:pathData="M156,198 H332 M156,242 H332 M156,286 H332 M156,330 H332 M156,374 H332" />
-                  <path android:strokeColor="#EA9A9A" android:strokeWidth="6" android:pathData="M316,136 V404" />
-                  <path android:fillColor="#14223F" android:pathData="M164,112 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0 Z M210,112 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0 Z M256,112 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0 Z M302,112 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0 Z" />
-              </group>
-              <group android:translateX="330" android:translateY="250" android:rotation="36">
-                  <path android:fillColor="#E8747C" android:pathData="M-14,-150 H14 A10,10 0 0 1 24,-140 V-120 H-24 V-140 A10,10 0 0 1 -14,-150 Z" />
-                  <path android:fillColor="#C9D2DD" android:pathData="M-24,-124 H24 V-106 H-24 Z" />
-                  <path android:fillColor="#F5B83D" android:pathData="M-24,-108 H24 V62 H-24 Z" />
-                  <path android:fillColor="#E3A126" android:pathData="M-24,-108 H-8 V62 H-24 Z" />
-                  <path android:fillColor="#F6DDB0" android:pathData="M-24,62 L24,62 L0,112 Z" />
-                  <path android:fillColor="#2B3440" android:pathData="M-9,93 L9,93 L0,112 Z" />
-              </group>
-          </vector>
-          EOF
-
-          cat > app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml <<'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-              <background android:drawable="@drawable/ic_launcher_background" />
-              <foreground android:drawable="@drawable/ic_launcher_foreground" />
-          </adaptive-icon>
-          EOF
-
-          cat > app/src/main/res/drawable/ic_launcher_background.xml <<'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-              <solid android:color="#1E3560" />
-          </shape>
-          EOF
-
-          cat > app/src/main/res/drawable/ic_launcher_foreground.xml <<'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <vector xmlns:android="http://schemas.android.com/apk/res/android"
-              android:width="108dp"
-              android:height="108dp"
-              android:viewportWidth="512"
-              android:viewportHeight="512">
-              <group android:pivotX="256" android:pivotY="256" android:scaleX="0.8" android:scaleY="0.8" android:translateY="-4">
-                  <group android:pivotX="240" android:pivotY="268" android:rotation="-6">
-                      <path android:fillColor="#FFFFFF" android:pathData="M152,112 H336 A24,24 0 0 1 360,136 V388 A24,24 0 0 1 336,412 H152 A24,24 0 0 1 128,388 V136 A24,24 0 0 1 152,112 Z" />
-                      <path android:strokeColor="#CFDDEB" android:strokeWidth="7" android:pathData="M156,198 H332 M156,242 H332 M156,286 H332 M156,330 H332 M156,374 H332" />
-                      <path android:strokeColor="#EA9A9A" android:strokeWidth="6" android:pathData="M316,136 V404" />
-                      <path android:fillColor="#14223F" android:pathData="M164,112 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0 Z M210,112 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0 Z M256,112 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0 Z M302,112 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0 Z" />
-                  </group>
-                  <group android:translateX="330" android:translateY="250" android:rotation="36">
-                      <path android:fillColor="#E8747C" android:pathData="M-14,-150 H14 A10,10 0 0 1 24,-140 V-120 H-24 V-140 A10,10 0 0 1 -14,-150 Z" />
-                      <path android:fillColor="#C9D2DD" android:pathData="M-24,-124 H24 V-106 H-24 Z" />
-                      <path android:fillColor="#F5B83D" android:pathData="M-24,-108 H24 V62 H-24 Z" />
-                      <path android:fillColor="#E3A126" android:pathData="M-24,-108 H-8 V62 H-24 Z" />
-                      <path android:fillColor="#F6DDB0" android:pathData="M-24,62 L24,62 L0,112 Z" />
-                      <path android:fillColor="#2B3440" android:pathData="M-9,93 L9,93 L0,112 Z" />
-                  </group>
-              </group>
-          </vector>
-          EOF
-
-          cat > app/src/main/res/drawable/logo_circle.xml <<'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <vector xmlns:android="http://schemas.android.com/apk/res/android"
-              android:width="64dp"
-              android:height="64dp"
-              android:viewportWidth="512"
-              android:viewportHeight="512">
-              <path android:fillColor="#1E3560" android:pathData="M0,256 a256,256 0 1,0 512,0 a256,256 0 1,0 -512,0 Z" />
-              <group android:pivotX="256" android:pivotY="256" android:scaleX="0.78" android:scaleY="0.78" android:translateY="-5">
-                  <group android:pivotX="240" android:pivotY="268" android:rotation="-6">
-                      <path android:fillColor="#FFFFFF" android:pathData="M152,112 H336 A24,24 0 0 1 360,136 V388 A24,24 0 0 1 336,412 H152 A24,24 0 0 1 128,388 V136 A24,24 0 0 1 152,112 Z" />
-                      <path android:strokeColor="#CFDDEB" android:strokeWidth="7" android:pathData="M156,198 H332 M156,242 H332 M156,286 H332 M156,330 H332 M156,374 H332" />
-                      <path android:strokeColor="#EA9A9A" android:strokeWidth="6" android:pathData="M316,136 V404" />
-                      <path android:fillColor="#14223F" android:pathData="M164,112 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0 Z M210,112 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0 Z M256,112 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0 Z M302,112 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0 Z" />
-                  </group>
-                  <group android:translateX="330" android:translateY="250" android:rotation="36">
-                      <path android:fillColor="#E8747C" android:pathData="M-14,-150 H14 A10,10 0 0 1 24,-140 V-120 H-24 V-140 A10,10 0 0 1 -14,-150 Z" />
-                      <path android:fillColor="#C9D2DD" android:pathData="M-24,-124 H24 V-106 H-24 Z" />
-                      <path android:fillColor="#F5B83D" android:pathData="M-24,-108 H24 V62 H-24 Z" />
-                      <path android:fillColor="#E3A126" android:pathData="M-24,-108 H-8 V62 H-24 Z" />
-                      <path android:fillColor="#F6DDB0" android:pathData="M-24,62 L24,62 L0,112 Z" />
-                      <path android:fillColor="#2B3440" android:pathData="M-9,93 L9,93 L0,112 Z" />
-                  </group>
-              </group>
-          </vector>
-          EOF
-
-          cat > app/src/main/java/com/abufatima/app/Fb.kt <<'EOF'
-          package com.abufatima.app
-
-          import android.content.Context
-          import android.graphics.Color
-          import com.google.firebase.FirebaseApp
-          import com.google.firebase.FirebaseOptions
-
-          data class Section(val id: String, val name: String, val short: String, val color: Int)
-
-          object Fb {
-              const val DEV_CODE = "1B9EF0F9"
-              const val REPO = "maxhssss7-png/abo"
-              const val APP_NAME = "أستاذ حيدر"
-
-              val SECTIONS = listOf(
-                  Section("s4", "الصف الرابع", "٤", Color.parseColor("#E17076")),
-                  Section("s5a", "الخامس - أ", "٥أ", Color.parseColor("#7BC862")),
-                  Section("s5b", "الخامس - ب", "٥ب", Color.parseColor("#6EC9CB")),
-                  Section("s6a", "السادس - أ", "٦أ", Color.parseColor("#65AADD")),
-                  Section("s6b", "السادس - ب", "٦ب", Color.parseColor("#A695E7"))
-              )
-
-              fun section(id: String?): Section? = SECTIONS.firstOrNull { it.id == id }
-
-              fun app(context: Context): FirebaseApp {
-                  val apps = FirebaseApp.getApps(context)
-                  if (apps.isNotEmpty()) return FirebaseApp.getInstance()
-                  return FirebaseApp.initializeApp(
-                      context,
-                      FirebaseOptions.Builder()
-                          .setApiKey("AIzaSyCcHSKty9M2yXqcbnWSA9s0CG_dOWmXnB4")
-                          .setApplicationId("1:917500086406:android:68a165c0fd305ad74e6907")
-                          .setProjectId("abof-6ea3c")
-                          .setStorageBucket("abof-6ea3c.firebasestorage.app")
-                          .setGcmSenderId("917500086406")
-                          .build()
-                  )
-              }
-
-              fun prefs(context: Context) = context.getSharedPreferences("abufatima", Context.MODE_PRIVATE)
-          }
-          EOF
-
-          cat > app/src/main/java/com/abufatima/app/PostsWorker.kt <<'EOF'
-          package com.abufatima.app
-
-          import android.app.NotificationChannel
-          import android.app.NotificationManager
-          import android.app.PendingIntent
-          import android.content.Context
-          import android.content.Intent
-          import android.os.Build
-          import androidx.core.app.NotificationCompat
-          import androidx.core.app.NotificationManagerCompat
-          import androidx.work.Constraints
-          import androidx.work.ExistingPeriodicWorkPolicy
-          import androidx.work.NetworkType
-          import androidx.work.PeriodicWorkRequestBuilder
-          import androidx.work.WorkManager
-          import androidx.work.Worker
-          import androidx.work.WorkerParameters
-          import com.google.android.gms.tasks.Tasks
-          import com.google.firebase.auth.FirebaseAuth
-          import com.google.firebase.firestore.FirebaseFirestore
-          import com.google.firebase.firestore.Query
-          import com.google.firebase.firestore.Source
-          import java.util.concurrent.TimeUnit
-
-          class PostsWorker(context: Context, params: WorkerParameters) : Worker(context, params) {
-
-              companion object {
-                  const val CHANNEL = "homework"
-
-                  fun schedule(context: Context) {
-                      val req = PeriodicWorkRequestBuilder<PostsWorker>(15, TimeUnit.MINUTES)
-                          .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
-                          .build()
-                      WorkManager.getInstance(context)
-                          .enqueueUniquePeriodicWork("posts-check", ExistingPeriodicWorkPolicy.KEEP, req)
-                  }
-
-                  fun ensureChannel(context: Context) {
-                      if (Build.VERSION.SDK_INT >= 26) {
-                          val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-                          if (nm.getNotificationChannel(CHANNEL) == null) {
-                              nm.createNotificationChannel(
-                                  NotificationChannel(CHANNEL, "الواجبات الجديدة", NotificationManager.IMPORTANCE_HIGH)
-                              )
-                          }
-                      }
-                  }
-              }
-
-              override fun doWork(): Result {
-                  val ctx = applicationContext
-                  val prefs = Fb.prefs(ctx)
-                  if (prefs.getBoolean("staff", false)) return Result.success()
-                  if (prefs.getBoolean("mute_all", false)) return Result.success()
-                  val sid = prefs.getString("section", null) ?: return Result.success()
-                  if (prefs.getBoolean("mute_$sid", false)) return Result.success()
-                  val sec = Fb.section(sid) ?: return Result.success()
-
-                  return try {
-                      val app = Fb.app(ctx)
-                      if (FirebaseAuth.getInstance(app).currentUser == null) return Result.success()
-                      val db = FirebaseFirestore.getInstance(app)
-                      val snap = Tasks.await(
-                          db.collection("sections").document(sid).collection("posts")
-                              .orderBy("createdAt", Query.Direction.DESCENDING)
-                              .limit(10)
-                              .get(Source.SERVER),
-                          30, TimeUnit.SECONDS
-                      )
-                      val key = "notified_$sid"
-                      val last = prefs.getLong(key, 0L)
-                      val lastRead = prefs.getLong("read_$sid", 0L)
-                      if (last == 0L) {
-                          prefs.edit().putLong(key, System.currentTimeMillis()).apply()
-                          return Result.success()
-                      }
-                      val fresh = snap.documents.filter {
-                          val t = it.getTimestamp("createdAt")?.toDate()?.time ?: 0L
-                          t > last && t > lastRead
-                      }
-                      if (fresh.isNotEmpty()) {
-                          val newest = fresh.maxOf { it.getTimestamp("createdAt")?.toDate()?.time ?: 0L }
-                          prefs.edit().putLong(key, newest).apply()
-                          val first = fresh.first()
-                          val text = first.getString("text")?.takeIf { it.isNotBlank() } ?: "📷 صورة"
-                          val title = if (fresh.size == 1) "واجب جديد · ${sec.name}" else "${fresh.size} واجبات جديدة · ${sec.name}"
-                          notify(ctx, title, text)
-                      }
-                      Result.success()
-                  } catch (e: Exception) {
-                      Result.retry()
-                  }
-              }
-
-              private fun notify(ctx: Context, title: String, text: String) {
-                  ensureChannel(ctx)
-                  val open = Intent(ctx, MainActivity::class.java)
-                  open.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                  val flags = if (Build.VERSION.SDK_INT >= 23) PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT else PendingIntent.FLAG_UPDATE_CURRENT
-                  val pi = PendingIntent.getActivity(ctx, 1, open, flags)
-                  val n = NotificationCompat.Builder(ctx, CHANNEL)
-                      .setSmallIcon(android.R.drawable.ic_dialog_email)
-                      .setContentTitle(title)
-                      .setContentText(text)
-                      .setStyle(NotificationCompat.BigTextStyle().bigText(text))
-                      .setAutoCancel(true)
-                      .setPriority(NotificationCompat.PRIORITY_HIGH)
-                      .setContentIntent(pi)
-                      .build()
-                  try {
-                      NotificationManagerCompat.from(ctx).notify(1001, n)
-                  } catch (e: SecurityException) {
-                      // notification permission not granted
-                  }
-              }
-          }
-          EOF
-
-          cat > app/src/main/java/com/abufatima/app/MainActivity.kt <<'EOF'
-          package com.abufatima.app
-
-          import android.Manifest
-          import android.app.Dialog
-          import android.content.ClipData
-          import android.content.ClipboardManager
-          import android.content.Context
-          import android.content.Intent
-          import android.content.pm.PackageManager
-          import android.graphics.Bitmap
-          import android.graphics.BitmapFactory
-          import android.graphics.Color
-          import android.graphics.Typeface
-          import android.graphics.drawable.GradientDrawable
-          import android.net.Uri
-          import android.os.Build
-          import android.os.Bundle
-          import android.os.Handler
-          import android.os.Looper
-          import android.provider.Settings
-          import android.text.InputType
-          import android.text.TextUtils
-          import android.view.Gravity
-          import android.view.View
-          import android.view.ViewGroup
-          import android.widget.EditText
-          import android.widget.FrameLayout
-          import android.widget.ImageView
-          import android.widget.LinearLayout
-          import android.widget.ScrollView
-          import android.widget.TextView
-          import android.widget.Toast
-          import androidx.activity.OnBackPressedCallback
-          import androidx.activity.result.contract.ActivityResultContracts
-          import androidx.appcompat.app.AlertDialog
-          import androidx.appcompat.app.AppCompatActivity
-          import androidx.appcompat.widget.SwitchCompat
-          import androidx.core.content.ContextCompat
-          import androidx.core.content.FileProvider
-          import androidx.core.content.pm.PackageInfoCompat
-          import androidx.core.graphics.drawable.RoundedBitmapDrawableFactory
-          import com.google.firebase.Timestamp
-          import com.google.firebase.auth.FirebaseAuth
-          import com.google.firebase.firestore.AggregateSource
-          import com.google.firebase.firestore.Blob
-          import com.google.firebase.firestore.DocumentSnapshot
-          import com.google.firebase.firestore.FieldValue
-          import com.google.firebase.firestore.FirebaseFirestore
-          import com.google.firebase.firestore.ListenerRegistration
-          import com.google.firebase.firestore.Query
-          import com.google.firebase.firestore.SetOptions
-          import org.json.JSONObject
-          import java.io.ByteArrayOutputStream
-          import java.io.File
-          import java.net.HttpURLConnection
-          import java.net.URL
-          import java.text.SimpleDateFormat
-          import java.util.Calendar
-          import java.util.Date
-          import java.util.Locale
-
-          private val HEAD = Color.parseColor("#517DA2")
-          private val ACCENT = Color.parseColor("#3A8AD0")
-          private val BADGE = Color.parseColor("#4CA3E0")
-          private val TXT = Color.parseColor("#222222")
-          private val SUB = Color.parseColor("#8A96A3")
-          private val LINE = Color.parseColor("#ECECEC")
-          private val SOFT = Color.parseColor("#F1F3F5")
-          private val RED = Color.parseColor("#E05050")
-          private val TIME = Color.parseColor("#9AA6B2")
-          private val NAMECOL = Color.parseColor("#D08A2B")
-          private val HEADSUB = Color.parseColor("#D5E3F0")
-
-          class MainActivity : AppCompatActivity() {
-
-              private lateinit var db: FirebaseFirestore
-              private lateinit var auth: FirebaseAuth
-              private val prefs by lazy { Fb.prefs(this) }
-              private val handler = Handler(Looper.getMainLooper())
-
-              private lateinit var rootFrame: FrameLayout
-              private lateinit var content: FrameLayout
-
-              private var uid = ""
-              private var deviceCode = ""
-              private var role = "parent"
-              private var linkProblem = false
-              private var started = false
-
-              private var profName = Fb.APP_NAME
-              private var profBio = "واجبات الرابع والخامس والسادس الابتدائي أولاً بأول"
-              private var profPhoto: String? = null
-              private var profVerified = false
-
-              private val posts = mutableMapOf<String, List<DocumentSnapshot>>()
-              private val pins = mutableMapOf<String, Pair<String, String>?>()
-              private val dataRegs = mutableListOf<ListenerRegistration>()
-              private val imageCache = mutableMapOf<String, Bitmap>()
-
-              private var backAction: (() -> Unit)? = null
-              private var onData: (() -> Unit)? = null
-              private var onProfile: (() -> Unit)? = null
-              private var rolesReg: ListenerRegistration? = null
-              private var countsTask: Runnable? = null
-              private var drawerOpen = false
-
-              private var pendingImage: ByteArray? = null
-              private var pendingPreview: LinearLayout? = null
-              private var pickedAvatar: String? = null
-              private var editAvatarHolder: FrameLayout? = null
-              private var pendingUpdateUrl: String? = null
-
-              private val mySection: String? get() = prefs.getString("section", null)?.takeIf { Fb.section(it) != null }
-              private val isStaff get() = role == "teacher" || role == "developer"
-              private val isDev get() = role == "developer"
-
-              private val pickPostImage = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-                  if (uri != null) onPostImagePicked(uri)
-              }
-              private val pickAvatar = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-                  if (uri != null) onAvatarPicked(uri)
-              }
-              private val askNotify = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
-
-              private val heartbeat = object : Runnable {
-                  override fun run() {
-                      sendHeartbeat()
-                      handler.postDelayed(this, 60_000)
-                  }
-              }
-
-              // ============================================================
-              // startup
-              // ============================================================
-
-              override fun onCreate(savedInstanceState: Bundle?) {
-                  super.onCreate(savedInstanceState)
-                  window.decorView.layoutDirection = View.LAYOUT_DIRECTION_RTL
-                  window.statusBarColor = Color.parseColor("#4A7396")
-
-                  rootFrame = FrameLayout(this)
-                  content = FrameLayout(this)
-                  rootFrame.addView(content, FrameLayout.LayoutParams(-1, -1))
-                  setContentView(rootFrame)
-
-                  onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-                      override fun handleOnBackPressed() {
-                          if (drawerOpen) {
-                              closeDrawer()
-                              return
-                          }
-                          val b = backAction
-                          if (b != null) b() else finish()
-                      }
-                  })
-
-                  val app = Fb.app(this)
-                  auth = FirebaseAuth.getInstance(app)
-                  db = FirebaseFirestore.getInstance(app)
-
-                  val androidId = Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID) ?: "00000000"
-                  deviceCode = androidId.padEnd(8, '0').take(8).uppercase()
-
-                  showMessage("جارٍ التحميل…")
-
-                  val current = auth.currentUser
-                  if (current != null) {
-                      onSignedIn(current.uid)
-                  } else {
-                      auth.signInAnonymously()
-                          .addOnSuccessListener { res -> onSignedIn(res.user?.uid ?: "") }
-                          .addOnFailureListener { e ->
-                              showMessage("تعذّر الاتصال. تأكد من الإنترنت ثم أعد فتح التطبيق.\n\n" + (e.message ?: ""))
-                          }
-                  }
-
-                  PostsWorker.ensureChannel(this)
-                  PostsWorker.schedule(this)
-                  checkForUpdate()
-              }
-
-              override fun onResume() {
-                  super.onResume()
-                  val u = pendingUpdateUrl
-                  if (u != null && canInstall()) {
-                      pendingUpdateUrl = null
-                      downloadUpdate(u)
-                  }
-                  handler.removeCallbacks(heartbeat)
-                  if (started) handler.post(heartbeat)
-              }
-
-              override fun onPause() {
-                  super.onPause()
-                  handler.removeCallbacks(heartbeat)
-              }
-
-              private fun onSignedIn(id: String) {
-                  uid = id
-                  val ref = db.collection("codes").document(deviceCode)
-                  ref.get()
-                      .addOnSuccessListener { snap ->
-                          if (!snap.exists()) {
-                              ref.set(mapOf("uid" to uid, "at" to FieldValue.serverTimestamp()))
-                                  .addOnCompleteListener { watchRole() }
-                          } else {
-                              linkProblem = snap.getString("uid") != uid
-                              watchRole()
-                          }
-                      }
-                      .addOnFailureListener { watchRole() }
-              }
-
-              private fun watchRole() {
-                  if (deviceCode == Fb.DEV_CODE && !linkProblem) {
-                      role = "developer"
-                      start()
-                      return
-                  }
-                  db.collection("roles").document(uid).addSnapshotListener { snap, _ ->
-                      val newRole = if (snap != null && snap.getString("role") == "teacher") "teacher" else "parent"
-                      val changed = newRole != role
-                      role = newRole
-                      if (!started) {
-                          start()
-                      } else if (changed) {
-                          prefs.edit().putBoolean("staff", isStaff).apply()
-                          attachData()
-                          goHome()
-                      }
-                  }
-              }
-
-              private fun start() {
-                  if (started) return
-                  started = true
-                  prefs.edit().putBoolean("staff", isStaff).apply()
-                  db.collection("profile").document("main").addSnapshotListener { snap, _ ->
-                      if (snap != null && snap.exists()) {
-                          profName = snap.getString("name")?.takeIf { it.isNotBlank() } ?: Fb.APP_NAME
-                          profBio = snap.getString("bio") ?: ""
-                          profPhoto = snap.getString("photo")
-                          profVerified = snap.getBoolean("verified") ?: false
-                      }
-                      onProfile?.invoke()
-                  }
-                  attachData()
-                  goHome()
-                  handler.removeCallbacks(heartbeat)
-                  handler.post(heartbeat)
-                  if (!isStaff && Build.VERSION.SDK_INT >= 33 &&
-                      ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-                  ) {
-                      askNotify.launch(Manifest.permission.POST_NOTIFICATIONS)
-                  }
-              }
-
-              private fun visibleSections(): List<Section> =
-                  if (isStaff) Fb.SECTIONS else Fb.SECTIONS.filter { it.id == mySection }
-
-              private fun attachData() {
-                  for (r in dataRegs) r.remove()
-                  dataRegs.clear()
-                  posts.clear()
-                  pins.clear()
-                  for (s in visibleSections()) {
-                      val sid = s.id
-                      dataRegs.add(
-                          db.collection("sections").document(sid).collection("posts")
-                              .orderBy("createdAt", Query.Direction.DESCENDING)
-                              .limit(50)
-                              .addSnapshotListener { snap, _ ->
-                                  if (snap != null) {
-                                      posts[sid] = snap.documents.reversed()
-                                      onData?.invoke()
-                                  }
-                              }
-                      )
-                      dataRegs.add(
-                          db.collection("sections").document(sid).addSnapshotListener { snap, _ ->
-                              val t = snap?.getString("pinText")
-                              val id = snap?.getString("pinId")
-                              pins[sid] = if (!t.isNullOrBlank() && id != null) Pair(t, id) else null
-                              onData?.invoke()
-                          }
-                      )
-                  }
-              }
-
-              private fun sendHeartbeat() {
-                  val sid = mySection ?: return
-                  if (!started || isStaff || uid.isEmpty()) return
-                  db.collection("members").document(uid)
-                      .set(mapOf("section" to sid, "seen_$sid" to FieldValue.serverTimestamp()))
-              }
-
-              private fun goHome() {
-                  if (!isStaff && mySection == null) showPick() else showList()
-              }
-
-              // ============================================================
-              // ui helpers
-              // ============================================================
-
-              private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
-              private fun dpf(v: Int): Float = v * resources.displayMetrics.density
-              private val screenW get() = resources.displayMetrics.widthPixels
-
-              private fun shape(color: Int, radius: Int, strokeColor: Int = 0, strokeWidth: Int = 0): GradientDrawable {
-                  val d = GradientDrawable()
-                  d.setColor(color)
-                  d.cornerRadius = dpf(radius)
-                  if (strokeWidth > 0) d.setStroke(dp(strokeWidth), strokeColor)
-                  return d
-              }
-
-              private fun oval(color: Int): GradientDrawable {
-                  val d = GradientDrawable()
-                  d.shape = GradientDrawable.OVAL
-                  d.setColor(color)
-                  return d
-              }
-
-              private fun tv(text: String, size: Float, color: Int, bold: Boolean = false): TextView {
-                  val t = TextView(this)
-                  t.text = text
-                  t.textSize = size
-                  t.setTextColor(color)
-                  if (bold) t.setTypeface(Typeface.DEFAULT, Typeface.BOLD)
-                  return t
-              }
-
-              private fun vbox(): LinearLayout {
-                  val l = LinearLayout(this)
-                  l.orientation = LinearLayout.VERTICAL
-                  return l
-              }
-
-              private fun hbox(): LinearLayout {
-                  val l = LinearLayout(this)
-                  l.orientation = LinearLayout.HORIZONTAL
-                  l.gravity = Gravity.CENTER_VERTICAL
-                  return l
-              }
-
-              private fun mw(top: Int = 0, bottom: Int = 0, side: Int = 0): LinearLayout.LayoutParams {
-                  val p = LinearLayout.LayoutParams(-1, -2)
-                  p.topMargin = dp(top)
-                  p.bottomMargin = dp(bottom)
-                  p.leftMargin = dp(side)
-                  p.rightMargin = dp(side)
-                  return p
-              }
-
-              private fun weighted(): LinearLayout.LayoutParams = LinearLayout.LayoutParams(0, -2, 1f)
-
-              private fun fill(): LinearLayout.LayoutParams = LinearLayout.LayoutParams(-1, 0, 1f)
-
-              private fun toast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
-
-              private fun copyText(text: String) {
-                  val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                  cm.setPrimaryClip(ClipData.newPlainText("text", text))
-                  toast("تم النسخ")
-              }
-
-              private fun iconBtn(symbol: String, size: Float, color: Int, onClick: () -> Unit): TextView {
-                  val b = tv(symbol, size, color, true)
-                  b.gravity = Gravity.CENTER
-                  b.layoutParams = LinearLayout.LayoutParams(dp(48), dp(48))
-                  b.setOnClickListener { onClick() }
-                  return b
-              }
-
-              private fun topBar(title: String, onBack: (() -> Unit)?, extra: View? = null): LinearLayout {
-                  val bar = hbox()
-                  bar.setBackgroundColor(HEAD)
-                  bar.elevation = dpf(3)
-                  bar.setPadding(dp(4), 0, dp(4), 0)
-                  if (onBack != null) bar.addView(iconBtn("→", 22f, Color.WHITE, onBack))
-                  else bar.addView(iconBtn("☰", 22f, Color.WHITE) { openDrawer() })
-                  val t = tv(title, 19f, Color.WHITE, true)
-                  t.setSingleLine(true)
-                  t.ellipsize = TextUtils.TruncateAt.END
-                  val tp = weighted()
-                  tp.marginStart = dp(8)
-                  t.layoutParams = tp
-                  bar.addView(t)
-                  if (extra != null) bar.addView(extra)
-                  bar.layoutParams = LinearLayout.LayoutParams(-1, dp(56))
-                  return bar
-              }
-
-              private fun sectionAvatar(s: Section, size: Int): TextView {
-                  val a = tv(s.short, size / 2.9f, Color.WHITE, true)
-                  a.gravity = Gravity.CENTER
-                  a.background = oval(s.color)
-                  a.layoutParams = LinearLayout.LayoutParams(dp(size), dp(size))
-                  return a
-              }
-
-              private fun decodePhoto(b64: String?): Bitmap? {
-                  if (b64.isNullOrBlank()) return null
-                  return try {
-                      val bytes = android.util.Base64.decode(b64, android.util.Base64.DEFAULT)
-                      BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                  } catch (e: Exception) {
-                      null
-                  }
-              }
-
-              private fun teacherAvatar(size: Int, photo: String? = profPhoto): View {
-                  val iv = ImageView(this)
-                  val bmp = decodePhoto(photo)
-                  if (bmp != null) {
-                      val rd = RoundedBitmapDrawableFactory.create(resources, bmp)
-                      rd.isCircular = true
-                      iv.setImageDrawable(rd)
-                  } else {
-                      iv.setImageResource(R.drawable.logo_circle)
-                  }
-                  iv.scaleType = ImageView.ScaleType.CENTER_CROP
-                  iv.layoutParams = LinearLayout.LayoutParams(dp(size), dp(size))
-                  return iv
-              }
-
-              private fun verifiedBadge(bg: Int, fg: Int, size: Int = 17): TextView {
-                  val b = tv("✓", size * 0.6f, fg, true)
-                  b.gravity = Gravity.CENTER
-                  b.background = oval(bg)
-                  b.includeFontPadding = false
-                  val p = LinearLayout.LayoutParams(dp(size), dp(size))
-                  p.marginStart = dp(5)
-                  b.layoutParams = p
-                  return b
-              }
-
-              private fun nameWithBadge(size: Float, color: Int, badgeBg: Int, badgeFg: Int): LinearLayout {
-                  val row = hbox()
-                  val n = tv(profName, size, color, true)
-                  n.setSingleLine(true)
-                  row.addView(n)
-                  if (profVerified) row.addView(verifiedBadge(badgeBg, badgeFg))
-                  return row
-              }
-
-              private fun setScreen(screen: View, back: (() -> Unit)?, data: (() -> Unit)? = null, profile: (() -> Unit)? = null) {
-                  countsTask?.let { handler.removeCallbacks(it) }
-                  countsTask = null
-                  rolesReg?.remove()
-                  rolesReg = null
-                  backAction = back
-                  onData = data
-                  onProfile = profile
-                  content.removeAllViews()
-                  content.addView(screen, FrameLayout.LayoutParams(-1, -1))
-              }
-
-              private fun page(): LinearLayout {
-                  val p = vbox()
-                  p.setBackgroundColor(Color.WHITE)
-                  return p
-              }
-
-              private fun scroller(inner: View, bg: Int = Color.WHITE): ScrollView {
-                  val sv = ScrollView(this)
-                  sv.setBackgroundColor(bg)
-                  sv.isFillViewport = true
-                  sv.addView(inner)
-                  return sv
-              }
-
-              private fun showMessage(msg: String) {
-                  val box = vbox()
-                  box.gravity = Gravity.CENTER
-                  box.setBackgroundColor(Color.WHITE)
-                  box.setPadding(dp(30), dp(30), dp(30), dp(30))
-                  box.addView(teacherAvatar(90), LinearLayout.LayoutParams(dp(90), dp(90)))
-                  val t = tv(msg, 15f, TXT)
-                  t.gravity = Gravity.CENTER
-                  box.addView(t, mw(top = 20))
-                  setScreen(box, null)
-              }
-
-              private fun sectionTitle(text: String): TextView {
-                  val t = tv(text, 14.5f, ACCENT, true)
-                  t.setPadding(dp(18), dp(14), dp(18), dp(6))
-                  return t
-              }
-
-              private fun setRow(icon: String, title: String, sub: String?, titleColor: Int = TXT, right: View? = null, onClick: (() -> Unit)? = null): LinearLayout {
-                  val row = hbox()
-                  row.setPadding(dp(18), dp(13), dp(18), dp(13))
-                  row.setBackgroundColor(Color.WHITE)
-                  val ic = tv(icon, 19f, SUB)
-                  ic.gravity = Gravity.CENTER
-                  ic.layoutParams = LinearLayout.LayoutParams(dp(30), -2)
-                  row.addView(ic)
-                  val col = vbox()
-                  val cp = weighted()
-                  cp.marginStart = dp(16)
-                  col.layoutParams = cp
-                  col.addView(tv(title, 15.5f, titleColor))
-                  if (sub != null) col.addView(tv(sub, 13f, SUB))
-                  row.addView(col)
-                  if (right != null) row.addView(right)
-                  if (onClick != null) row.setOnClickListener { onClick() }
-                  return row
-              }
-
-              private fun divider(): View {
-                  val v = View(this)
-                  v.setBackgroundColor(LINE)
-                  v.layoutParams = LinearLayout.LayoutParams(-1, 1)
-                  return v
-              }
-
-              private fun gap(): View {
-                  val v = View(this)
-                  v.setBackgroundColor(SOFT)
-                  v.layoutParams = LinearLayout.LayoutParams(-1, dp(10))
-                  return v
-              }
-
-              // ============================================================
-              // pick section (first run)
-              // ============================================================
-
-              private fun showPick() {
-                  val pg = page()
-                  pg.addView(topBar(Fb.APP_NAME, if (mySection != null || isStaff) ({ showList() }) else null))
-                  val body = vbox()
-                  body.addView(sectionTitle("اختر الشعبة"))
-                  val hint = tv("ستصلك واجبات هذه الشعبة فقط. يمكنك تغييرها لاحقاً من الإعدادات.", 13f, SUB)
-                  hint.setPadding(dp(18), 0, dp(18), dp(10))
-                  body.addView(hint)
-                  for (s in Fb.SECTIONS) {
-                      val row = hbox()
-                      row.setPadding(dp(14), dp(9), dp(14), dp(9))
-                      row.addView(sectionAvatar(s, 54))
-                      val name = tv(s.name, 16.5f, TXT, true)
-                      val np = weighted()
-                      np.marginStart = dp(14)
-                      name.layoutParams = np
-                      row.addView(name)
-                      if (s.id == mySection) row.addView(tv("✓", 18f, ACCENT, true))
-                      row.setOnClickListener { chooseSection(s.id) }
-                      body.addView(row)
-                  }
-                  pg.addView(scroller(body), fill())
-                  setScreen(pg, if (mySection != null) ({ showSettings() }) else null)
-              }
-
-              private fun chooseSection(sid: String) {
-                  val old = mySection
-                  prefs.edit().putString("section", sid).apply()
-                  if (old != sid) {
-                      prefs.edit().putLong("read_$sid", System.currentTimeMillis()).putLong("notified_$sid", System.currentTimeMillis()).apply()
-                      sendHeartbeat()
-                      attachData()
-                  }
-                  openChat(sid)
-              }
-
-              // ============================================================
-              // chat list
-              // ============================================================
-
-              private fun timeOf(d: DocumentSnapshot): Long = d.getTimestamp("createdAt")?.toDate()?.time ?: System.currentTimeMillis()
-
-              private fun clock(ms: Long): String = SimpleDateFormat("h:mm a", Locale("ar")).format(Date(ms))
-
-              private fun dayLabel(ms: Long): String {
-                  val c = Calendar.getInstance()
-                  val today = Calendar.getInstance()
-                  c.timeInMillis = ms
-                  if (c.get(Calendar.YEAR) == today.get(Calendar.YEAR) && c.get(Calendar.DAY_OF_YEAR) == today.get(Calendar.DAY_OF_YEAR)) return "اليوم"
-                  today.add(Calendar.DAY_OF_YEAR, -1)
-                  if (c.get(Calendar.YEAR) == today.get(Calendar.YEAR) && c.get(Calendar.DAY_OF_YEAR) == today.get(Calendar.DAY_OF_YEAR)) return "أمس"
-                  return SimpleDateFormat("d MMMM", Locale("ar")).format(Date(ms))
-              }
-
-              private fun listTime(ms: Long): String {
-                  val d = dayLabel(ms)
-                  return if (d == "اليوم") clock(ms) else d
-              }
-
-              private fun showList() {
-                  val pg = page()
-                  pg.addView(topBar(Fb.APP_NAME, null))
-                  val list = vbox()
-                  pg.addView(scroller(list), fill())
-
-                  fun render() {
-                      list.removeAllViews()
-                      for (s in visibleSections()) {
-                          val items = posts[s.id] ?: emptyList()
-                          val last = items.lastOrNull()
-                          val read = prefs.getLong("read_${s.id}", 0L)
-                          val unread = if (isStaff) 0 else items.count { timeOf(it) > read }
-
-                          val row = hbox()
-                          row.setPadding(dp(14), dp(8), dp(14), dp(8))
-                          row.addView(sectionAvatar(s, 54))
-                          val col = vbox()
-                          val cp = weighted()
-                          cp.marginStart = dp(12)
-                          col.layoutParams = cp
-
-                          val l1 = hbox()
-                          val nm = tv("📢 " + s.name, 16f, TXT, true)
-                          nm.setSingleLine(true)
-                          nm.layoutParams = weighted()
-                          l1.addView(nm)
-                          if (last != null) l1.addView(tv(listTime(timeOf(last)), 12.5f, SUB))
-                          col.addView(l1)
-
-                          val l2 = hbox()
-                          val prevText = when {
-                              last == null -> "لا توجد رسائل بعد"
-                              last.getBoolean("hasImage") == true -> "📷 " + (last.getString("text")?.takeIf { it.isNotBlank() } ?: "صورة")
-                              else -> last.getString("text") ?: ""
-                          }
-                          val pv = tv(prevText.replace('\n', ' '), 14.5f, SUB)
-                          pv.setSingleLine(true)
-                          pv.ellipsize = TextUtils.TruncateAt.END
-                          pv.layoutParams = weighted()
-                          l2.addView(pv)
-                          if (unread > 0) {
-                              val muted = prefs.getBoolean("mute_${s.id}", false) || prefs.getBoolean("mute_all", false)
-                              val b = tv(unread.toString(), 12.5f, Color.WHITE, true)
-                              b.gravity = Gravity.CENTER
-                              b.minWidth = dp(22)
-                              b.setPadding(dp(6), 0, dp(6), 0)
-                              b.background = shape(if (muted) Color.parseColor("#B8C1CA") else BADGE, 11)
-                              val bp = LinearLayout.LayoutParams(-2, dp(22))
-                              bp.marginStart = dp(6)
-                              l2.addView(b, bp)
-                          }
-                          col.addView(l2, mw(top = 3))
-                          row.addView(col)
-                          row.setOnClickListener { openChat(s.id) }
-                          list.addView(row)
-                          val dv = divider()
-                          val dpar = LinearLayout.LayoutParams(-1, 1)
-                          dpar.marginStart = dp(80)
-                          list.addView(dv, dpar)
-                      }
-                      if (!isStaff) {
-                          val n = tv("تصلك هنا واجبات شعبتك فقط", 13f, SUB)
-                          n.gravity = Gravity.CENTER
-                          n.setPadding(0, dp(18), 0, dp(18))
-                          list.addView(n, mw())
-                      }
-                  }
-                  render()
-                  setScreen(pg, null, { render() }, { render() })
-              }
-
-              // ============================================================
-              // drawer
-              // ============================================================
-
-              private fun openDrawer() {
-                  if (drawerOpen) return
-                  drawerOpen = true
-                  val scrim = View(this)
-                  scrim.setBackgroundColor(Color.parseColor("#66000000"))
-                  scrim.tag = "scrim"
-                  scrim.setOnClickListener { closeDrawer() }
-                  rootFrame.addView(scrim, FrameLayout.LayoutParams(-1, -1))
-
-                  val w = minOf((screenW * 0.82f).toInt(), dp(330))
-                  val panel = vbox()
-                  panel.tag = "drawer"
-                  panel.setBackgroundColor(Color.WHITE)
-                  panel.elevation = dpf(12)
-                  panel.isClickable = true
-
-                  val head = vbox()
-                  head.setBackgroundColor(HEAD)
-                  head.setPadding(dp(18), dp(24), dp(18), dp(14))
-                  head.addView(teacherAvatar(64))
-                  head.addView(nameWithBadge(16f, Color.WHITE, Color.WHITE, HEAD), mw(top = 14))
-                  val sub = if (isStaff) "كل الشعب" else (Fb.section(mySection)?.name ?: "")
-                  head.addView(tv(sub, 13.5f, HEADSUB), mw(top = 2))
-                  panel.addView(head)
-
-                  fun item(icon: String, text: String, action: () -> Unit) {
-                      val r = hbox()
-                      r.setPadding(dp(20), dp(14), dp(20), dp(14))
-                      val ic = tv(icon, 19f, SUB)
-                      ic.layoutParams = LinearLayout.LayoutParams(dp(30), -2)
-                      r.addView(ic)
-                      val t = tv(text, 15.5f, TXT)
-                      val tp = weighted()
-                      tp.marginStart = dp(20)
-                      t.layoutParams = tp
-                      r.addView(t)
-                      r.setOnClickListener {
-                          closeDrawer()
-                          action()
-                      }
-                      panel.addView(r)
-                  }
-                  item("👤", profName) { showProfile() }
-                  item("📤", "مشاركة التطبيق") { shareApp() }
-                  item("⚙️", "الإعدادات") { showSettings() }
-                  if (!isStaff) item("🔄", "تغيير الشعبة") { showPick() }
-                  if (isStaff) {
-                      val dv = divider()
-                      val dvp = LinearLayout.LayoutParams(-1, 1)
-                      dvp.topMargin = dp(6)
-                      dvp.bottomMargin = dp(6)
-                      panel.addView(dv, dvp)
-                      item("✏️", "تعديل الملف الشخصي") { showEditProfile() }
-                  }
-                  if (isDev) item("🔑", "صلاحيات الأساتذة") { showGrant() }
-
-                  val spacer = View(this)
-                  panel.addView(spacer, fill())
-                  val ver = tv(Fb.APP_NAME + " · الإصدار " + versionName(), 12.5f, SUB)
-                  ver.setPadding(dp(20), dp(14), dp(20), dp(14))
-                  panel.addView(ver)
-
-                  val lp = FrameLayout.LayoutParams(w, -1)
-                  lp.gravity = Gravity.START
-                  rootFrame.addView(panel, lp)
-                  panel.translationX = w.toFloat()
-                  panel.animate().translationX(0f).setDuration(200).start()
-              }
-
-              private fun closeDrawer() {
-                  drawerOpen = false
-                  val toRemove = mutableListOf<View>()
-                  for (i in 0 until rootFrame.childCount) {
-                      val v = rootFrame.getChildAt(i)
-                      if (v.tag == "scrim" || v.tag == "drawer") toRemove.add(v)
-                  }
-                  for (v in toRemove) rootFrame.removeView(v)
-              }
-
-              private fun versionName(): String = try {
-                  packageManager.getPackageInfo(packageName, 0).versionName ?: ""
-              } catch (e: Exception) {
-                  ""
-              }
-
-              // ============================================================
-              // chat
-              // ============================================================
-
-              private fun openChat(sid: String) {
-                  val s = Fb.section(sid) ?: return
-                  val pg = page()
-
-                  // header
-                  val head = hbox()
-                  head.setBackgroundColor(HEAD)
-                  head.elevation = dpf(3)
-                  head.setPadding(dp(4), 0, dp(10), 0)
-                  head.addView(iconBtn("→", 22f, Color.WHITE) { showList() })
-                  val who = hbox()
-                  who.addView(sectionAvatar(s, 42))
-                  val wcol = vbox()
-                  val wp = weighted()
-                  wp.marginStart = dp(10)
-                  wcol.layoutParams = wp
-                  val t1 = tv(s.name, 17f, Color.WHITE, true)
-                  t1.setSingleLine(true)
-                  wcol.addView(t1)
-                  val t2 = tv("…", 13f, HEADSUB)
-                  wcol.addView(t2)
-                  who.addView(wcol)
-                  who.setOnClickListener { showInfo(sid) }
-                  head.addView(who, weighted())
-                  pg.addView(head, LinearLayout.LayoutParams(-1, dp(56)))
-
-                  // pinned
-                  val pinBar = hbox()
-                  pinBar.setBackgroundColor(Color.WHITE)
-                  pinBar.setPadding(dp(14), dp(7), dp(14), dp(7))
-                  val pinLine = View(this)
-                  pinLine.setBackgroundColor(ACCENT)
-                  pinBar.addView(pinLine, LinearLayout.LayoutParams(dp(2), dp(34)))
-                  val pinCol = vbox()
-                  val pcp = weighted()
-                  pcp.marginStart = dp(10)
-                  pinCol.layoutParams = pcp
-                  pinCol.addView(tv("رسالة مثبّتة", 13.5f, ACCENT, true))
-                  val pinText = tv("", 13.5f, Color.parseColor("#555555"))
-                  pinText.setSingleLine(true)
-                  pinText.ellipsize = TextUtils.TruncateAt.END
-                  pinCol.addView(pinText)
-                  pinBar.addView(pinCol)
-                  if (isStaff) {
-                      pinBar.setOnLongClickListener {
-                          AlertDialog.Builder(this).setItems(arrayOf("إلغاء التثبيت")) { _, _ ->
-                              db.collection("sections").document(sid)
-                                  .set(mapOf("pinText" to FieldValue.delete(), "pinId" to FieldValue.delete()), SetOptions.merge())
-                          }.show()
-                          true
-                      }
-                  }
-                  pg.addView(pinBar, mw())
-                  val pinDiv = divider()
-                  pg.addView(pinDiv)
-
-                  // messages
-                  val msgs = vbox()
-                  msgs.setPadding(dp(10), dp(8), dp(10), dp(14))
-                  val sv = ScrollView(this)
-                  sv.isFillViewport = true
-                  sv.background = GradientDrawable(
-                      GradientDrawable.Orientation.TL_BR,
-                      intArrayOf(Color.parseColor("#CFE0C4"), Color.parseColor("#DBE7CF"), Color.parseColor("#CDDFD4"))
-                  )
-                  sv.addView(msgs)
-                  pg.addView(sv, fill())
-
-                  // bottom
-                  val bottom = vbox()
-                  bottom.setBackgroundColor(Color.WHITE)
-                  pg.addView(divider())
-                  pg.addView(bottom, mw())
-
-                  if (isStaff) buildComposer(bottom, sid) else buildMuteBar(bottom, sid)
-
-                  fun render() {
-                      val pin = pins[sid]
-                      pinBar.visibility = if (pin != null) View.VISIBLE else View.GONE
-                      pinDiv.visibility = pinBar.visibility
-                      pinText.text = pin?.first?.replace('\n', ' ') ?: ""
-
-                      val items = posts[sid] ?: emptyList()
-                      msgs.removeAllViews()
-                      var lastDay = ""
-                      if (items.isEmpty()) {
-                          val e = tv("لا توجد رسائل بعد", 14f, Color.WHITE)
-                          e.background = shape(Color.parseColor("#59506446"), 14)
-                          e.setPadding(dp(14), dp(6), dp(14), dp(6))
-                          val ep = LinearLayout.LayoutParams(-2, -2)
-                          ep.gravity = Gravity.CENTER_HORIZONTAL
-                          ep.topMargin = dp(30)
-                          msgs.addView(e, ep)
-                      }
-                      for (d in items) {
-                          val ms = timeOf(d)
-                          val day = dayLabel(ms)
-                          if (day != lastDay) {
-                              lastDay = day
-                              val pill = tv(day, 13f, Color.WHITE, true)
-                              pill.background = shape(Color.parseColor("#59506446"), 12)
-                              pill.setPadding(dp(11), dp(3), dp(11), dp(3))
-                              val pp = LinearLayout.LayoutParams(-2, -2)
-                              pp.gravity = Gravity.CENTER_HORIZONTAL
-                              pp.topMargin = dp(8)
-                              pp.bottomMargin = dp(4)
-                              msgs.addView(pill, pp)
-                          }
-                          msgs.addView(bubble(sid, d))
-                      }
-                      prefs.edit().putLong("read_$sid", System.currentTimeMillis()).apply()
-                      if (!isStaff) markViewed(items)
-                      sv.post { sv.fullScroll(View.FOCUS_DOWN) }
-                  }
-
-                  prefs.edit().putLong("read_$sid", System.currentTimeMillis()).apply()
-                  render()
-                  setScreen(pg, { showList() }, { render() }, { render() })
-
-                  val task = object : Runnable {
-                      override fun run() {
-                          refreshCounts(sid, t2)
-                          handler.postDelayed(this, 60_000)
-                      }
-                  }
-                  countsTask = task
-                  handler.post(task)
-              }
-
-              private fun refreshCounts(sid: String, target: TextView) {
-                  db.collection("members").whereEqualTo("section", sid).count().get(AggregateSource.SERVER)
-                      .addOnSuccessListener { all ->
-                          val since = Timestamp(Date(System.currentTimeMillis() - 3 * 60_000L))
-                          db.collection("members").whereGreaterThan("seen_$sid", since).count().get(AggregateSource.SERVER)
-                              .addOnSuccessListener { on ->
-                                  target.text = "${all.count} عضو، ${on.count} متصل"
-                              }
-                              .addOnFailureListener { target.text = "${all.count} عضو" }
-                      }
-              }
-
-              private fun markViewed(items: List<DocumentSnapshot>) {
-                  val seen = prefs.getStringSet("seen_posts", emptySet())?.toMutableSet() ?: mutableSetOf()
-                  var changed = false
-                  for (d in items) {
-                      if (d.metadata.hasPendingWrites()) continue
-                      if (seen.contains(d.id)) continue
-                      seen.add(d.id)
-                      changed = true
-                      d.reference.update("views", FieldValue.increment(1))
-                  }
-                  if (changed) {
-                      val trimmed = if (seen.size > 400) seen.toList().takeLast(300).toSet() else seen
-                      prefs.edit().putStringSet("seen_posts", trimmed).apply()
-                  }
-              }
-
-              private fun bubble(sid: String, d: DocumentSnapshot): View {
-                  val wrap = LinearLayout(this)
-                  wrap.layoutDirection = View.LAYOUT_DIRECTION_LTR
-                  wrap.gravity = Gravity.LEFT
-                  val maxW = (screenW * 0.80f).toInt()
-
-                  val b = vbox()
-                  b.layoutDirection = View.LAYOUT_DIRECTION_RTL
-                  val bg = GradientDrawable()
-                  bg.setColor(Color.WHITE)
-                  val r = dpf(14)
-                  val small = dpf(4)
-                  bg.cornerRadii = floatArrayOf(r, r, r, r, r, r, small, small)
-                  b.background = bg
-                  b.elevation = dpf(1)
-                  b.clipToOutline = true
-
-                  val nameRow = nameWithBadge(13.5f, NAMECOL, BADGE, Color.WHITE)
-                  nameRow.setPadding(dp(10), dp(7), dp(10), 0)
-                  b.addView(nameRow)
-
-                  val hasImage = d.getBoolean("hasImage") == true
-                  if (hasImage) {
-                      val iv = ImageView(this)
-                      iv.adjustViewBounds = true
-                      iv.scaleType = ImageView.ScaleType.FIT_CENTER
-                      iv.setBackgroundColor(Color.parseColor("#EEF1F4"))
-                      iv.minimumHeight = dp(140)
-                      val ip = LinearLayout.LayoutParams(maxW, -2)
-                      ip.topMargin = dp(6)
-                      b.addView(iv, ip)
-                      loadImage(sid, d.id, iv)
-                      iv.setOnClickListener { imageCache[d.id]?.let { showFullImage(it) } }
-                  }
-
-                  val text = d.getString("text") ?: ""
-                  if (text.isNotBlank()) {
-                      val t = tv(text, 15.5f, TXT)
-                      t.setLineSpacing(0f, 1.2f)
-                      t.maxWidth = maxW - dp(20)
-                      t.setPadding(dp(10), dp(4), dp(10), dp(2))
-                      t.setTextIsSelectable(false)
-                      b.addView(t)
-                  }
-
-                  val meta = hbox()
-                  meta.layoutDirection = View.LAYOUT_DIRECTION_LTR
-                  meta.setPadding(dp(10), dp(2), dp(10), dp(6))
-                  val edited = if (d.getBoolean("edited") == true) "معدّلة · " else ""
-                  meta.addView(tv(edited + clock(timeOf(d)), 12f, TIME))
-                  val views = d.getLong("views") ?: 0L
-                  val vv = tv("   👁 $views", 12f, TIME)
-                  meta.addView(vv)
-                  b.addView(meta)
-
-                  val bp = LinearLayout.LayoutParams(-2, -2)
-                  b.minimumWidth = dp(130)
-                  wrap.addView(b, bp)
-
-                  b.setOnLongClickListener {
-                      postMenu(sid, d)
-                      true
-                  }
-                  val wp = mw(top = 3, bottom = 3)
-                  wrap.layoutParams = wp
-                  return wrap
-              }
-
-              private fun loadImage(sid: String, pid: String, iv: ImageView) {
-                  val cached = imageCache[pid]
-                  if (cached != null) {
-                      iv.setImageBitmap(cached)
-                      return
-                  }
-                  db.collection("sections").document(sid).collection("images").document(pid).get()
-                      .addOnSuccessListener { snap ->
-                          val bytes = snap.getBlob("data")?.toBytes() ?: return@addOnSuccessListener
-                          val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return@addOnSuccessListener
-                          imageCache[pid] = bmp
-                          iv.setImageBitmap(bmp)
-                      }
-              }
-
-              private fun showFullImage(bmp: Bitmap) {
-                  val dlg = Dialog(this, android.R.style.Theme_Black_NoTitleBar_Fullscreen)
-                  val iv = ImageView(this)
-                  iv.setImageBitmap(bmp)
-                  iv.scaleType = ImageView.ScaleType.FIT_CENTER
-                  iv.setBackgroundColor(Color.BLACK)
-                  iv.setOnClickListener { dlg.dismiss() }
-                  dlg.setContentView(iv)
-                  dlg.show()
-              }
-
-              private fun postMenu(sid: String, d: DocumentSnapshot) {
-                  val text = d.getString("text") ?: ""
-                  if (!isStaff) {
-                      if (text.isNotBlank()) copyText(text)
-                      return
-                  }
-                  val views = d.getLong("views") ?: 0L
-                  val options = arrayOf("👁 شاهدها $views", "📌 تثبيت", "✏️ تعديل", "📋 نسخ النص", "🗑️ حذف")
-                  AlertDialog.Builder(this).setItems(options) { _, which ->
-                      when (which) {
-                          0 -> toast("شاهد هذه الرسالة $views من الأعضاء")
-                          1 -> db.collection("sections").document(sid)
-                              .set(mapOf("pinText" to (if (text.isBlank()) "📷 صورة" else text.take(150)), "pinId" to d.id), SetOptions.merge())
-                              .addOnSuccessListener { toast("تم تثبيت الرسالة") }
-                          2 -> editPost(d)
-                          3 -> copyText(text)
-                          4 -> AlertDialog.Builder(this)
-                              .setMessage("حذف هذه الرسالة من الشعبة؟")
-                              .setPositiveButton("حذف") { _, _ ->
-                                  val batch = db.batch()
-                                  batch.delete(d.reference)
-                                  if (d.getBoolean("hasImage") == true) {
-                                      batch.delete(db.collection("sections").document(sid).collection("images").document(d.id))
-                                  }
-                                  batch.commit().addOnFailureListener { e -> toast("فشل الحذف: " + (e.message ?: "")) }
-                              }
-                              .setNegativeButton("إلغاء", null)
-                              .show()
-                      }
-                  }.show()
-              }
-
-              private fun editPost(d: DocumentSnapshot) {
-                  val input = EditText(this)
-                  input.setText(d.getString("text") ?: "")
-                  input.setPadding(dp(18), dp(12), dp(18), dp(12))
-                  AlertDialog.Builder(this)
-                      .setTitle("تعديل الرسالة")
-                      .setView(input)
-                      .setPositiveButton("حفظ") { _, _ ->
-                          d.reference.update(mapOf("text" to input.text.toString().trim(), "edited" to true))
-                              .addOnFailureListener { e -> toast("فشل التعديل: " + (e.message ?: "")) }
-                      }
-                      .setNegativeButton("إلغاء", null)
-                      .show()
-              }
-
-              private fun buildMuteBar(bottom: LinearLayout, sid: String) {
-                  val b = tv("", 15f, ACCENT, true)
-                  b.gravity = Gravity.CENTER
-                  fun paint() {
-                      b.text = if (prefs.getBoolean("mute_$sid", false)) "إلغاء الكتم" else "كتم الإشعارات"
-                  }
-                  paint()
-                  b.setOnClickListener {
-                      val m = !prefs.getBoolean("mute_$sid", false)
-                      prefs.edit().putBoolean("mute_$sid", m).apply()
-                      paint()
-                      toast(if (m) "تم كتم الإشعارات" else "تم تفعيل الإشعارات")
-                  }
-                  bottom.addView(b, LinearLayout.LayoutParams(-1, dp(50)))
-              }
-
-              private fun buildComposer(bottom: LinearLayout, sid: String) {
-                  pendingImage = null
-                  val preview = hbox()
-                  preview.setPadding(dp(14), dp(8), dp(14), 0)
-                  preview.visibility = View.GONE
-                  pendingPreview = preview
-                  bottom.addView(preview, mw())
-
-                  val target = tv("تنشر إلى: " + (Fb.section(sid)?.name ?: ""), 12f, SUB)
-                  target.setPadding(dp(14), dp(6), dp(14), 0)
-                  bottom.addView(target)
-
-                  val row = hbox()
-                  row.gravity = Gravity.BOTTOM
-                  row.setPadding(dp(2), dp(2), dp(2), dp(2))
-                  row.addView(iconBtn("📎", 20f, SUB) { pickPostImage.launch("image/*") })
-                  val field = EditText(this)
-                  field.hint = "اكتب الواجب…"
-                  field.background = null
-                  field.textSize = 16f
-                  field.maxLines = 6
-                  field.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
-                  field.setPadding(dp(6), dp(10), dp(6), dp(10))
-                  row.addView(field, weighted())
-                  var busy = false
-                  val send = iconBtn("➤", 22f, ACCENT) {}
-                  send.rotation = 180f
-                  send.setOnClickListener {
-                      val text = field.text.toString().trim()
-                      val img = pendingImage
-                      if (text.isEmpty() && img == null) {
-                          toast("اكتب الواجب أو أرفق صورة")
-                          return@setOnClickListener
-                      }
-                      if (busy) return@setOnClickListener
-                      busy = true
-                      send.alpha = 0.4f
-                      val sec = db.collection("sections").document(sid)
-                      val ref = sec.collection("posts").document()
-                      val batch = db.batch()
-                      if (img != null) batch.set(sec.collection("images").document(ref.id), mapOf("data" to Blob.fromBytes(img)))
-                      batch.set(
-                          ref, mapOf(
-                              "text" to text,
-                              "createdAt" to FieldValue.serverTimestamp(),
-                              "by" to uid,
-                              "hasImage" to (img != null),
-                              "views" to 0
-                          )
-                      )
-                      batch.commit()
-                          .addOnSuccessListener {
-                              busy = false
-                              send.alpha = 1f
-                              field.setText("")
-                              clearPendingImage()
-                          }
-                          .addOnFailureListener { e ->
-                              busy = false
-                              send.alpha = 1f
-                              toast("فشل الإرسال: " + (e.message ?: ""))
-                          }
-                  }
-                  row.addView(send)
-                  bottom.addView(row, mw())
-              }
-
-              private fun clearPendingImage() {
-                  pendingImage = null
-                  pendingPreview?.removeAllViews()
-                  pendingPreview?.visibility = View.GONE
-              }
-
-              private fun compress(uri: Uri, maxSide: Int, quality: Int): ByteArray? {
-                  val bounds = BitmapFactory.Options()
-                  bounds.inJustDecodeBounds = true
-                  contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
-                  var sample = 1
-                  while (bounds.outWidth / (sample * 2) >= maxSide || bounds.outHeight / (sample * 2) >= maxSide) sample *= 2
-                  val opts = BitmapFactory.Options()
-                  opts.inSampleSize = sample
-                  val src = contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, opts) } ?: return null
-                  val scale = minOf(1f, maxSide.toFloat() / maxOf(src.width, src.height))
-                  val bmp = if (scale < 1f) Bitmap.createScaledBitmap(src, (src.width * scale).toInt(), (src.height * scale).toInt(), true) else src
-                  val out = ByteArrayOutputStream()
-                  bmp.compress(Bitmap.CompressFormat.JPEG, quality, out)
-                  return out.toByteArray()
-              }
-
-              private fun onPostImagePicked(uri: Uri) {
-                  try {
-                      var bytes = compress(uri, 1280, 72) ?: return
-                      if (bytes.size > 900_000) bytes = compress(uri, 1024, 55) ?: return
-                      pendingImage = bytes
-                      val preview = pendingPreview ?: return
-                      preview.removeAllViews()
-                      val iv = ImageView(this)
-                      iv.setImageBitmap(BitmapFactory.decodeByteArray(bytes, 0, bytes.size))
-                      iv.scaleType = ImageView.ScaleType.CENTER_CROP
-                      preview.addView(iv, LinearLayout.LayoutParams(dp(56), dp(56)))
-                      val t = tv("صورة مرفقة", 14f, TXT)
-                      val tp = weighted()
-                      tp.marginStart = dp(12)
-                      t.layoutParams = tp
-                      preview.addView(t)
-                      val x = tv("إزالة", 14f, RED, true)
-                      x.setOnClickListener { clearPendingImage() }
-                      preview.addView(x)
-                      preview.visibility = View.VISIBLE
-                  } catch (e: Exception) {
-                      toast("تعذّرت قراءة الصورة")
-                  }
-              }
-
-              // ============================================================
-              // section info
-              // ============================================================
-
-              private fun bigHead(back: () -> Unit, avatar: View, titleRow: View, sub: TextView): LinearLayout {
-                  val head = vbox()
-                  head.setBackgroundColor(HEAD)
-                  head.setPadding(dp(4), 0, dp(4), dp(22))
-                  val top = hbox()
-                  top.addView(iconBtn("→", 22f, Color.WHITE, back))
-                  head.addView(top, LinearLayout.LayoutParams(-1, dp(56)))
-                  val row = hbox()
-                  row.setPadding(dp(14), dp(4), dp(14), 0)
-                  row.addView(avatar)
-                  val col = vbox()
-                  val cp = weighted()
-                  cp.marginStart = dp(16)
-                  col.layoutParams = cp
-                  col.addView(titleRow)
-                  col.addView(sub, mw(top = 2))
-                  row.addView(col)
-                  head.addView(row)
-                  return head
-              }
-
-              private fun showInfo(sid: String) {
-                  val s = Fb.section(sid) ?: return
-                  val pg = page()
-                  pg.setBackgroundColor(SOFT)
-                  val sub = tv("…", 14f, HEADSUB)
-                  pg.addView(bigHead({ openChat(sid) }, sectionAvatar(s, 64), tv(s.name, 20f, Color.WHITE, true), sub))
-                  val body = vbox()
-                  body.setBackgroundColor(SOFT)
-
-                  val info = vbox()
-                  info.setBackgroundColor(Color.WHITE)
-                  info.addView(sectionTitle("معلومات"))
-                  val desc = tv("مجموعة واجبات " + s.name + " الابتدائي.", 15.5f, TXT)
-                  desc.setPadding(dp(18), dp(4), dp(18), 0)
-                  info.addView(desc)
-                  val dk = tv("الوصف", 13f, SUB)
-                  dk.setPadding(dp(18), dp(2), dp(18), dp(12))
-                  info.addView(dk)
-                  body.addView(info)
-                  body.addView(gap())
-
-                  if (!isStaff) {
-                      val sw = SwitchCompat(this)
-                      sw.isChecked = !prefs.getBoolean("mute_$sid", false)
-                      sw.isClickable = false
-                      val row = setRow("🔔", "الإشعارات", "تنبيه عند كل واجب جديد", right = sw) {
-                          sw.isChecked = !sw.isChecked
-                          prefs.edit().putBoolean("mute_$sid", !sw.isChecked).apply()
-                      }
-                      body.addView(row)
-                  }
-                  pg.addView(scroller(body, SOFT), fill())
-                  setScreen(pg, { openChat(sid) })
-                  refreshCounts(sid, sub)
-              }
-
-              // ============================================================
-              // teacher profile
-              // ============================================================
-
-              private fun showProfile() {
-                  val pg = page()
-                  pg.setBackgroundColor(SOFT)
-                  fun build() {
-                      pg.removeAllViews()
-                      pg.addView(
-                          bigHead({ goHome() }, teacherAvatar(64), nameWithBadge(20f, Color.WHITE, Color.WHITE, HEAD),
-                              tv("الرابع · الخامس · السادس الابتدائي", 14f, HEADSUB))
-                      )
-                      val body = vbox()
-                      val info = vbox()
-                      info.setBackgroundColor(Color.WHITE)
-                      info.addView(sectionTitle("معلومات"))
-                      if (profBio.isNotBlank()) {
-                          val b = tv(profBio, 15.5f, TXT)
-                          b.setPadding(dp(18), dp(4), dp(18), 0)
-                          info.addView(b)
-                          val k = tv("النبذة", 13f, SUB)
-                          k.setPadding(dp(18), dp(2), dp(18), dp(10))
-                          info.addView(k)
-                          info.addView(divider())
-                      }
-                      val g = tv("الرابع · الخامس أ، ب · السادس أ، ب", 15.5f, TXT)
-                      g.setPadding(dp(18), dp(10), dp(18), 0)
-                      info.addView(g)
-                      val gk = tv("الشعب", 13f, SUB)
-                      gk.setPadding(dp(18), dp(2), dp(18), dp(12))
-                      info.addView(gk)
-                      body.addView(info)
-                      body.addView(gap())
-                      body.addView(setRow("📤", "مشاركة التطبيق", null, ACCENT) { shareApp() })
-                      pg.addView(scroller(body, SOFT), fill())
-                  }
-                  build()
-                  setScreen(pg, { goHome() }, null, { build() })
-              }
-
-              // ============================================================
-              // settings
-              // ============================================================
-
-              private fun showSettings() {
-                  val pg = page()
-                  pg.addView(topBar("الإعدادات", { goHome() }))
-                  val body = vbox()
-                  body.setBackgroundColor(SOFT)
-
-                  val n = vbox()
-                  n.setBackgroundColor(Color.WHITE)
-                  n.addView(sectionTitle("الإشعارات"))
-                  val sw = SwitchCompat(this)
-                  sw.isChecked = !prefs.getBoolean("mute_all", false)
-                  sw.isClickable = false
-                  n.addView(setRow("🔔", "إشعارات الواجبات", "تصل خلال دقائق من نشر الواجب", right = sw) {
-                      sw.isChecked = !sw.isChecked
-                      prefs.edit().putBoolean("mute_all", !sw.isChecked).apply()
-                  })
-                  body.addView(n)
-                  body.addView(gap())
-
-                  if (!isStaff) {
-                      val c = vbox()
-                      c.setBackgroundColor(Color.WHITE)
-                      c.addView(sectionTitle("الشعبة"))
-                      c.addView(setRow("🔄", "تغيير الشعبة", Fb.section(mySection)?.name ?: "") { showPick() })
-                      body.addView(c)
-                      body.addView(gap())
-                  }
-
-                  val a = vbox()
-                  a.setBackgroundColor(Color.WHITE)
-                  a.addView(sectionTitle("حول التطبيق"))
-                  a.addView(setRow("ℹ️", "الإصدار", Fb.APP_NAME + " " + versionName()))
-                  a.addView(divider())
-                  a.addView(setRow("📱", deviceCode, "معرّف الجهاز — لا تحتاجه عادةً. اضغط للنسخ.") { copyText(deviceCode) })
-                  if (linkProblem) {
-                      val w = tv("هذا الجهاز مسجّل سابقاً بتثبيت قديم.", 12.5f, RED)
-                      w.setPadding(dp(18), 0, dp(18), dp(12))
-                      a.addView(w)
-                  }
-                  body.addView(a)
-
-                  pg.addView(scroller(body, SOFT), fill())
-                  setScreen(pg, { goHome() })
-              }
-
-              // ============================================================
-              // edit profile (staff)
-              // ============================================================
-
-              private fun showEditProfile() {
-                  if (!isStaff) {
-                      goHome()
-                      return
-                  }
-                  pickedAvatar = null
-                  val pg = page()
-                  val body = vbox()
-
-                  val name = EditText(this)
-                  val bio = EditText(this)
-                  var vSwitch: SwitchCompat? = null
-
-                  val save = iconBtn("✓", 22f, Color.WHITE) {}
-                  pg.addView(topBar("تعديل الملف الشخصي", { goHome() }, save))
-
-                  val holder = FrameLayout(this)
-                  holder.addView(teacherAvatar(96))
-                  editAvatarHolder = holder
-                  val hp = LinearLayout.LayoutParams(dp(96), dp(96))
-                  hp.gravity = Gravity.CENTER_HORIZONTAL
-                  hp.topMargin = dp(20)
-                  body.addView(holder, hp)
-                  val ch = tv("تغيير الصورة", 15f, ACCENT, true)
-                  ch.gravity = Gravity.CENTER
-                  ch.setPadding(0, dp(8), 0, dp(10))
-                  body.addView(ch, mw())
-                  holder.setOnClickListener { pickAvatar.launch("image/*") }
-                  ch.setOnClickListener { pickAvatar.launch("image/*") }
-
-                  val form = vbox()
-                  form.setPadding(dp(18), dp(6), dp(18), dp(16))
-                  form.addView(tv("الاسم", 13.5f, ACCENT, true))
-                  name.setText(profName)
-                  name.setSingleLine(true)
-                  form.addView(name, mw())
-                  form.addView(tv("النبذة", 13.5f, ACCENT, true), mw(top = 14))
-                  bio.setText(profBio)
-                  form.addView(bio, mw())
-                  body.addView(form)
-                  body.addView(gap())
-
-                  val vs = SwitchCompat(this)
-                  vs.isChecked = profVerified
-                  vs.isClickable = false
-                  val vrow = setRow("☑️", "علامة التوثيق", if (isDev) "تظهر بجانب الاسم" else "تُمنح من إدارة التطبيق", right = vs) {
-                      if (isDev) vs.isChecked = !vs.isChecked
-                  }
-                  if (!isDev) vrow.alpha = 0.55f else vSwitch = vs
-                  body.addView(vrow)
-
-                  save.setOnClickListener {
-                      val data = mutableMapOf<String, Any>(
-                          "name" to name.text.toString().trim().ifEmpty { Fb.APP_NAME },
-                          "bio" to bio.text.toString().trim()
-                      )
-                      val p = pickedAvatar
-                      if (p != null) data["photo"] = p
-                      val v = vSwitch
-                      if (v != null) data["verified"] = v.isChecked
-                      db.collection("profile").document("main").set(data, SetOptions.merge())
-                          .addOnSuccessListener {
-                              toast("تم حفظ الملف الشخصي")
-                              goHome()
-                          }
-                          .addOnFailureListener { e -> toast("فشل الحفظ: " + (e.message ?: "")) }
-                  }
-
-                  pg.addView(scroller(body), fill())
-                  setScreen(pg, { goHome() })
-              }
-
-              private fun onAvatarPicked(uri: Uri) {
-                  try {
-                      val bounds = BitmapFactory.Options()
-                      bounds.inJustDecodeBounds = true
-                      contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
-                      var sample = 1
-                      while (bounds.outWidth / sample > 1024 || bounds.outHeight / sample > 1024) sample *= 2
-                      val opts = BitmapFactory.Options()
-                      opts.inSampleSize = sample
-                      val src = contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, opts) } ?: return
-                      val side = minOf(src.width, src.height)
-                      val square = Bitmap.createBitmap(src, (src.width - side) / 2, (src.height - side) / 2, side, side)
-                      val small = Bitmap.createScaledBitmap(square, 256, 256, true)
-                      val out = ByteArrayOutputStream()
-                      small.compress(Bitmap.CompressFormat.JPEG, 78, out)
-                      pickedAvatar = android.util.Base64.encodeToString(out.toByteArray(), android.util.Base64.NO_WRAP)
-                      editAvatarHolder?.let {
-                          it.removeAllViews()
-                          it.addView(teacherAvatar(96, pickedAvatar))
-                      }
-                  } catch (e: Exception) {
-                      toast("تعذّرت قراءة الصورة")
-                  }
-              }
-
-              // ============================================================
-              // grant teachers (developer)
-              // ============================================================
-
-              private fun showGrant() {
-                  if (!isDev) {
-                      goHome()
-                      return
-                  }
-                  val pg = page()
-                  pg.addView(topBar("صلاحيات الأساتذة", { goHome() }))
-                  val body = vbox()
-                  body.setBackgroundColor(SOFT)
-
-                  val box = vbox()
-                  box.setBackgroundColor(Color.WHITE)
-                  box.setPadding(dp(18), dp(14), dp(18), dp(16))
-                  box.addView(tv("معرّف جهاز الأستاذ", 13.5f, ACCENT, true))
-                  val code = EditText(this)
-                  code.hint = "مثال: 229FB7F5"
-                  code.setSingleLine(true)
-                  code.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS
-                  box.addView(code, mw())
-                  box.addView(tv("يجده صاحب الجهاز في الإعدادات ← حول التطبيق.", 13f, SUB), mw(top = 4))
-                  val grant = tv("منح صلاحية الأستاذ", 15.5f, Color.WHITE, true)
-                  grant.gravity = Gravity.CENTER
-                  grant.background = shape(Color.parseColor("#5AA0D8"), 8)
-                  grant.setPadding(0, dp(13), 0, dp(13))
-                  box.addView(grant, mw(top = 16))
-                  val relink = tv("إعادة ربط هذا المعرّف (إذا حذف صاحبه التطبيق وثبّته من جديد)", 13f, ACCENT)
-                  relink.gravity = Gravity.CENTER
-                  relink.setPadding(0, dp(12), 0, 0)
-                  box.addView(relink, mw())
-                  body.addView(box)
-                  body.addView(gap())
-
-                  val listBox = vbox()
-                  listBox.setBackgroundColor(Color.WHITE)
-                  listBox.addView(sectionTitle("الأساتذة الحاليون"))
-                  val list = vbox()
-                  listBox.addView(list)
-                  body.addView(listBox)
-
-                  grant.setOnClickListener {
-                      val c = code.text.toString().trim().uppercase()
-                      if (c.length != 8) {
-                          toast("المعرّف يتكون من 8 حروف وأرقام")
-                          return@setOnClickListener
-                      }
-                      if (c == Fb.DEV_CODE) {
-                          toast("هذا جهازك، صلاحياته كاملة أصلاً")
-                          return@setOnClickListener
-                      }
-                      db.collection("codes").document(c).get()
-                          .addOnSuccessListener { snap ->
-                              val target = snap.getString("uid")
-                              if (!snap.exists() || target == null) {
-                                  toast("لم يُعثر على هذا المعرّف. اطلب من صاحب الجهاز فتح التطبيق مرة واحدة على الأقل.")
-                              } else {
-                                  db.collection("roles").document(target)
-                                      .set(mapOf("role" to "teacher", "code" to c))
-                                      .addOnSuccessListener {
-                                          code.setText("")
-                                          toast("تم منح صلاحية الأستاذ ✅")
-                                      }
-                                      .addOnFailureListener { e -> toast("فشل المنح: " + (e.message ?: "")) }
-                              }
-                          }
-                          .addOnFailureListener { e -> toast("فشل البحث: " + (e.message ?: "")) }
-                  }
-                  relink.setOnClickListener {
-                      val c = code.text.toString().trim().uppercase()
-                      if (c.length != 8) {
-                          toast("اكتب المعرّف أولاً")
-                          return@setOnClickListener
-                      }
-                      db.collection("codes").document(c).delete()
-                          .addOnSuccessListener { toast("تم. يفتح صاحب الجهاز التطبيق من جديد، ثم امنحه الصلاحية مرة أخرى.") }
-                          .addOnFailureListener { e -> toast("فشل: " + (e.message ?: "")) }
-                  }
-
-                  pg.addView(scroller(body, SOFT), fill())
-                  setScreen(pg, { goHome() })
-
-                  rolesReg = db.collection("roles").addSnapshotListener { snap, err ->
-                      list.removeAllViews()
-                      if (err != null || snap == null) {
-                          val e = tv("تعذّر تحميل القائمة", 13f, RED)
-                          e.setPadding(dp(18), dp(10), dp(18), dp(14))
-                          list.addView(e)
-                          return@addSnapshotListener
-                      }
-                      val docs = snap.documents.filter { it.getString("role") == "teacher" }
-                      if (docs.isEmpty()) {
-                          val e = tv("لا يوجد أساتذة بعد", 13f, SUB)
-                          e.setPadding(dp(18), dp(10), dp(18), dp(14))
-                          list.addView(e)
-                      }
-                      for (d in docs) {
-                          val revoke = tv("سحب", 14f, RED, true)
-                          val row = setRow("👤", d.getString("code") ?: d.id.take(8), "أستاذ", right = revoke)
-                          revoke.setOnClickListener {
-                              AlertDialog.Builder(this)
-                                  .setMessage("سحب صلاحية الأستاذ من هذا الجهاز؟")
-                                  .setPositiveButton("سحب") { _, _ ->
-                                      d.reference.delete().addOnSuccessListener { toast("تم سحب الصلاحية") }
-                                  }
-                                  .setNegativeButton("إلغاء", null)
-                                  .show()
-                          }
-                          list.addView(row)
-                          list.addView(divider())
-                      }
-                  }
-              }
-
-              // ============================================================
-              // share
-              // ============================================================
-
-              private fun shareApp() {
-                  try {
-                      val src = File(applicationInfo.sourceDir)
-                      val dir = File(cacheDir, "share")
-                      dir.mkdirs()
-                      val out = File(dir, "UstadhHaider.apk")
-                      src.copyTo(out, overwrite = true)
-                      val uri = FileProvider.getUriForFile(this, "$packageName.files", out)
-                      val i = Intent(Intent.ACTION_SEND)
-                      i.type = "application/vnd.android.package-archive"
-                      i.putExtra(Intent.EXTRA_STREAM, uri)
-                      i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                      startActivity(Intent.createChooser(i, "مشاركة تطبيق " + Fb.APP_NAME))
-                  } catch (e: Exception) {
-                      toast("تعذّرت المشاركة: " + (e.message ?: ""))
-                  }
-              }
-
-              // ============================================================
-              // self update
-              // ============================================================
-
-              private fun canInstall(): Boolean =
-                  Build.VERSION.SDK_INT < 26 || packageManager.canRequestPackageInstalls()
-
-              private fun checkForUpdate() {
-                  Thread {
-                      try {
-                          val conn = URL("https://api.github.com/repos/${Fb.REPO}/releases/latest").openConnection() as HttpURLConnection
-                          conn.connectTimeout = 10000
-                          conn.readTimeout = 10000
-                          conn.setRequestProperty("Accept", "application/vnd.github+json")
-                          if (conn.responseCode != 200) return@Thread
-                          val json = JSONObject(conn.inputStream.bufferedReader().readText())
-                          val latest = json.getString("tag_name").removePrefix("v").toLongOrNull() ?: return@Thread
-                          val assets = json.getJSONArray("assets")
-                          var apkUrl: String? = null
-                          for (i in 0 until assets.length()) {
-                              val a = assets.getJSONObject(i)
-                              if (a.getString("name").endsWith(".apk")) apkUrl = a.getString("browser_download_url")
-                          }
-                          val current = PackageInfoCompat.getLongVersionCode(packageManager.getPackageInfo(packageName, 0))
-                          val url = apkUrl
-                          if (url != null && latest > current) {
-                              runOnUiThread {
-                                  if (!isFinishing) {
-                                      AlertDialog.Builder(this)
-                                          .setTitle("يتوفر تحديث جديد")
-                                          .setMessage("توجد نسخة أحدث من التطبيق. هل تريد التحديث الآن؟")
-                                          .setPositiveButton("تحديث الآن") { _, _ -> downloadUpdate(url) }
-                                          .setNegativeButton("لاحقاً", null)
-                                          .show()
-                                  }
-                              }
-                          }
-                      } catch (e: Exception) {
-                          // offline or GitHub unreachable
-                      }
-                  }.start()
-              }
-
-              private fun downloadUpdate(url: String) {
-                  if (!canInstall()) {
-                      pendingUpdateUrl = url
-                      toast("اسمح للتطبيق بتثبيت التحديثات، ثم ارجع إليه")
-                      try {
-                          startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:$packageName")))
-                      } catch (e: Exception) {
-                          toast("افتح الإعدادات واسمح بتثبيت التطبيقات من مصادر غير معروفة")
-                      }
-                      return
-                  }
-                  val dlg = AlertDialog.Builder(this)
-                      .setMessage("جارٍ تنزيل التحديث…")
-                      .setCancelable(false)
-                      .show()
-                  Thread {
-                      try {
-                          val conn = URL(url).openConnection() as HttpURLConnection
-                          conn.instanceFollowRedirects = true
-                          conn.connectTimeout = 15000
-                          conn.readTimeout = 30000
-                          val dir = File(cacheDir, "update")
-                          dir.mkdirs()
-                          val file = File(dir, "update.apk")
-                          conn.inputStream.use { input -> file.outputStream().use { output -> input.copyTo(output) } }
-                          runOnUiThread {
-                              dlg.dismiss()
-                              val uri = FileProvider.getUriForFile(this, "$packageName.files", file)
-                              val i = Intent(Intent.ACTION_VIEW)
-                              i.setDataAndType(uri, "application
+          echo "735c86e2892fa69d7ab7cdcaec288c002be95578beff7911f68b0a627b810694  project.tar.xz" | sha256sum -c -
+          tar -xJf project.tar.xz
+          ls -R app | head -40
+
+      - name: Setup Gradle 8.4
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.4'
+
+      - name: Decode signing key
+        run: echo "${{ secrets.KEYSTORE_B64 }}" | base64 -d > "$RUNNER_TEMP/abufatima.jks"
+
+      - name: Build APK
+        env:
+          KS_PATH: ${{ runner.temp }}/abufatima.jks
+          KS_PASS: ${{ secrets.KEYSTORE_PASSWORD }}
+        run: gradle assembleRelease --stacktrace
+
+      - name: Rename APK
+        run: cp app/build/outputs/apk/release/app-release.apk abufatima.apk
+
+      - name: Publish APK as release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ github.run_number }}
+          name: أستاذ حيدر ${{ github.run_number }}
+          files: abufatima.apk
