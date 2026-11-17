@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>build.yml — ابو فاطمة (خطوة 1)</title>
+<style>
+body{margin:0;background:#0e1420;color:#dfe6f3;font-family:monospace;padding:16px}
+h2{font-family:sans-serif;font-size:15px;color:#c99a3e;margin:0 0 10px}
+pre{white-space:pre-wrap;word-wrap:break-word;font-size:12.5px;line-height:1.55;direction:ltr;text-align:left;
+  background:#0a0f1a;border:1px solid #1c2336;border-radius:10px;padding:14px;margin:0}
+</style>
+</head>
+<body>
+<h2>انسخ المحتوى بالأسفل كامل وضعه بملف باسم: .github/workflows/build.yml</h2>
+<pre>name: Build Abu Fatima - Get Device ID
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: &#x27;17&#x27;
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        run: |
+          yes | sdkmanager --licenses || true
+          sdkmanager &quot;platforms;android-34&quot; &quot;build-tools;34.0.0&quot;
+
+      - name: Write project files
+        run: |
+          mkdir -p app/src/main/java/com/abufatima/app
+          mkdir -p app/src/main/res/values
+
+          cat &gt; settings.gradle &lt;&lt;&#x27;EOF&#x27;
+          include &#x27;:app&#x27;
+          EOF
+
+          cat &gt; build.gradle &lt;&lt;&#x27;EOF&#x27;
+          buildscript {
+              repositories { google(); mavenCentral() }
+              dependencies {
+                  classpath &#x27;com.android.tools.build:gradle:8.1.4&#x27;
+                  classpath &#x27;org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.22&#x27;
+              }
+          }
+          allprojects {
+              repositories { google(); mavenCentral() }
+          }
+          EOF
+
+          cat &gt; gradle.properties &lt;&lt;&#x27;EOF&#x27;
+          android.useAndroidX=true
+          android.enableJetifier=true
+          EOF
+
+          cat &gt; app/build.gradle &lt;&lt;&#x27;EOF&#x27;
+          apply plugin: &#x27;com.android.application&#x27;
+          apply plugin: &#x27;kotlin-android&#x27;
+
+          android {
+              namespace &#x27;com.abufatima.app&#x27;
+              compileSdk 34
+              defaultConfig {
+                  applicationId &quot;com.abufatima.app&quot;
+                  minSdk 21
+                  targetSdk 34
+                  versionCode 1
+                  versionName &quot;0.1&quot;
+              }
+          }
+
+          dependencies {
+              implementation &#x27;androidx.core:core-ktx:1.12.0&#x27;
+              implementation &#x27;androidx.appcompat:appcompat:1.6.1&#x27;
+              implementation &#x27;org.jetbrains.kotlin:kotlin-stdlib:1.9.22&#x27;
+          }
+          EOF
+
+          cat &gt; app/src/main/AndroidManifest.xml &lt;&lt;&#x27;EOF&#x27;
+          &lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;
+          &lt;manifest xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;&gt;
+              &lt;application
+                  android:label=&quot;ابو فاطمة&quot;
+                  android:theme=&quot;@android:style/Theme.Material.Light&quot;&gt;
+                  &lt;activity android:name=&quot;.MainActivity&quot; android:exported=&quot;true&quot;&gt;
+                      &lt;intent-filter&gt;
+                          &lt;action android:name=&quot;android.intent.action.MAIN&quot; /&gt;
+                          &lt;category android:name=&quot;android.intent.category.LAUNCHER&quot; /&gt;
+                      &lt;/intent-filter&gt;
+                  &lt;/activity&gt;
+              &lt;/application&gt;
+          &lt;/manifest&gt;
+          EOF
+
+          cat &gt; app/src/main/java/com/abufatima/app/MainActivity.kt &lt;&lt;&#x27;EOF&#x27;
+          package com.abufatima.app
+
+          import android.content.ClipData
+          import android.content.ClipboardManager
+          import android.content.Context
+          import android.graphics.Typeface
+          import android.os.Bundle
+          import android.view.Gravity
+          import android.widget.Button
+          import android.widget.LinearLayout
+          import android.widget.TextView
+          import android.widget.Toast
+          import androidx.appcompat.app.AppCompatActivity
+          import java.util.UUID
+
+          class MainActivity : AppCompatActivity() {
+              override fun onCreate(savedInstanceState: Bundle?) {
+                  super.onCreate(savedInstanceState)
+
+                  val prefs = getSharedPreferences(&quot;abufatima&quot;, Context.MODE_PRIVATE)
+                  var deviceId = prefs.getString(&quot;device_id&quot;, null)
+                  if (deviceId == null) {
+                      deviceId = UUID.randomUUID().toString().substring(0, 8).uppercase()
+                      prefs.edit().putString(&quot;device_id&quot;, deviceId).apply()
+                  }
+
+                  val padding = (24 * resources.displayMetrics.density).toInt()
+
+                  val root = LinearLayout(this)
+                  root.orientation = LinearLayout.VERTICAL
+                  root.setPadding(padding, padding * 2, padding, padding)
+                  root.gravity = Gravity.CENTER_HORIZONTAL
+
+                  val title = TextView(this)
+                  title.text = &quot;ابو فاطمة&quot;
+                  title.textSize = 22f
+                  title.setTypeface(null, Typeface.BOLD)
+                  title.gravity = Gravity.CENTER
+
+                  val sub = TextView(this)
+                  sub.text = &quot;هذا معرّف جهازك. انسخه وارسله للمطوّر حتى يفعّل حسابك.&quot;
+                  sub.textSize = 14f
+                  sub.gravity = Gravity.CENTER
+                  sub.setPadding(0, padding / 2, 0, padding)
+
+                  val idView = TextView(this)
+                  idView.text = deviceId
+                  idView.textSize = 20f
+                  idView.setTypeface(Typeface.MONOSPACE, Typeface.BOLD)
+                  idView.gravity = Gravity.CENTER
+                  idView.setPadding(padding, padding, padding, padding)
+                  idView.setTextIsSelectable(true)
+
+                  val copyBtn = Button(this)
+                  copyBtn.text = &quot;نسخ المعرّف&quot;
+                  copyBtn.setOnClickListener {
+                      val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                      cm.setPrimaryClip(ClipData.newPlainText(&quot;device_id&quot;, deviceId))
+                      Toast.makeText(this, &quot;تم النسخ&quot;, Toast.LENGTH_SHORT).show()
+                  }
+
+                  root.addView(title)
+                  root.addView(sub)
+                  root.addView(idView)
+                  val btnParams = LinearLayout.LayoutParams(
+                      LinearLayout.LayoutParams.WRAP_CONTENT,
+                      LinearLayout.LayoutParams.WRAP_CONTENT
+                  )
+                  btnParams.topMargin = padding
+                  btnParams.gravity = Gravity.CENTER_HORIZONTAL
+                  root.addView(copyBtn, btnParams)
+
+                  setContentView(root)
+              }
+          }
+          EOF
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Generate Gradle wrapper
+        run: gradle wrapper --gradle-version 8.4
+
+      - name: Build debug APK
+        run: ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: abufatima-get-id
+          path: app/build/outputs/apk/debug/app-debug.apk
+</pre>
+</body>
+</html>
