@@ -1,1167 +1,744 @@
-name: Build Abu Fatima
-
-on:
-  workflow_dispatch:
-  push:
-    branches: [ main ]
-
-permissions:
-  contents: write
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Write project files
-        run: |
-          mkdir -p app/src/main/java/com/abufatima/app app/src/main/res/xml
-
-          cat > settings.gradle <<'EOF'
-          include ':app'
-          EOF
-
-          cat > build.gradle <<'EOF'
-          buildscript {
-              repositories { google(); mavenCentral() }
-              dependencies {
-                  classpath 'com.android.tools.build:gradle:8.1.4'
-                  classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.22'
-              }
-          }
-          allprojects {
-              repositories { google(); mavenCentral() }
-          }
-          EOF
-
-          cat > gradle.properties <<'EOF'
-          android.useAndroidX=true
-          android.enableJetifier=true
-          org.gradle.jvmargs=-Xmx3g
-          EOF
-
-          cat > app/build.gradle <<'EOF'
-          apply plugin: 'com.android.application'
-          apply plugin: 'kotlin-android'
-
-          def runNumber = Integer.parseInt(System.getenv("GITHUB_RUN_NUMBER") ?: "1")
-
-          android {
-              namespace 'com.abufatima.app'
-              compileSdk 34
-              defaultConfig {
-                  applicationId "com.abufatima.app"
-                  minSdk 21
-                  targetSdk 34
-                  versionCode runNumber
-                  versionName "1." + runNumber
-              }
-              compileOptions {
-                  sourceCompatibility JavaVersion.VERSION_17
-                  targetCompatibility JavaVersion.VERSION_17
-              }
-              kotlinOptions {
-                  jvmTarget = '17'
-              }
-              signingConfigs {
-                  release {
-                      storeFile file(System.getenv("KS_PATH"))
-                      storePassword System.getenv("KS_PASS")
-                      keyAlias "abufatima"
-                      keyPassword System.getenv("KS_PASS")
-                  }
-              }
-              buildTypes {
-                  release {
-                      minifyEnabled false
-                      signingConfig signingConfigs.release
-                  }
-              }
-              lint {
-                  checkReleaseBuilds false
-                  abortOnError false
-              }
-          }
-
-          dependencies {
-              implementation 'androidx.core:core-ktx:1.12.0'
-              implementation 'androidx.appcompat:appcompat:1.6.1'
-              implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.9.22'
-              implementation platform('com.google.firebase:firebase-bom:32.7.0')
-              implementation 'com.google.firebase:firebase-auth'
-              implementation 'com.google.firebase:firebase-firestore'
-          }
-          EOF
-
-          cat > app/src/main/AndroidManifest.xml <<'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-
-              <uses-permission android:name="android.permission.INTERNET" />
-              <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
-
-              <application
-                  android:label="ابو فاطمة"
-                  android:supportsRtl="true"
-                  android:theme="@style/Theme.AppCompat.Light.NoActionBar">
-
-                  <activity
-                      android:name=".MainActivity"
-                      android:exported="true"
-                      android:windowSoftInputMode="adjustResize">
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LAUNCHER" />
-                      </intent-filter>
-                  </activity>
-
-                  <provider
-                      android:name="androidx.core.content.FileProvider"
-                      android:authorities="${applicationId}.files"
-                      android:exported="false"
-                      android:grantUriPermissions="true">
-                      <meta-data
-                          android:name="android.support.FILE_PROVIDER_PATHS"
-                          android:resource="@xml/file_paths" />
-                  </provider>
-              </application>
-          </manifest>
-          EOF
-
-          cat > app/src/main/res/xml/file_paths.xml <<'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <paths>
-              <cache-path name="cache" path="." />
-          </paths>
-          EOF
-
-          cat > app/src/main/java/com/abufatima/app/MainActivity.kt <<'EOF'
-          package com.abufatima.app
-
-          import android.content.ClipData
-          import android.content.ClipboardManager
-          import android.content.Context
-          import android.content.Intent
-          import android.graphics.Bitmap
-          import android.graphics.BitmapFactory
-          import android.graphics.Color
-          import android.graphics.Typeface
-          import android.graphics.drawable.GradientDrawable
-          import android.net.Uri
-          import android.os.Build
-          import android.os.Bundle
-          import android.provider.Settings
-          import android.text.InputType
-          import android.util.Base64
-          import android.view.Gravity
-          import android.view.View
-          import android.widget.EditText
-          import android.widget.FrameLayout
-          import android.widget.ImageView
-          import android.widget.LinearLayout
-          import android.widget.ScrollView
-          import android.widget.TextView
-          import android.widget.Toast
-          import androidx.activity.OnBackPressedCallback
-          import androidx.activity.result.contract.ActivityResultContracts
-          import androidx.appcompat.app.AlertDialog
-          import androidx.appcompat.app.AppCompatActivity
-          import androidx.appcompat.widget.SwitchCompat
-          import androidx.core.content.FileProvider
-          import androidx.core.content.pm.PackageInfoCompat
-          import androidx.core.graphics.drawable.RoundedBitmapDrawableFactory
-          import com.google.firebase.FirebaseApp
-          import com.google.firebase.FirebaseOptions
-          import com.google.firebase.auth.FirebaseAuth
-          import com.google.firebase.firestore.DocumentSnapshot
-          import com.google.firebase.firestore.FieldValue
-          import com.google.firebase.firestore.FirebaseFirestore
-          import com.google.firebase.firestore.ListenerRegistration
-          import com.google.firebase.firestore.SetOptions
-          import org.json.JSONObject
-          import java.io.ByteArrayOutputStream
-          import java.io.File
-          import java.net.HttpURLConnection
-          import java.net.URL
-          import java.text.SimpleDateFormat
-          import java.util.Locale
-
-          private val INK = Color.parseColor("#1B2A4A")
-          private val INK2 = Color.parseColor("#0E1830")
-          private val GOLD = Color.parseColor("#C99A3E")
-          private val BG = Color.parseColor("#F6F3EC")
-          private val CARD = Color.WHITE
-          private val LINE = Color.parseColor("#E4DDCD")
-          private val MUT = Color.parseColor("#6B7280")
-          private val BLUE = Color.parseColor("#2F6FB0")
-          private val RED = Color.parseColor("#B0413F")
-          private val SOFT = Color.parseColor("#C7CFE0")
-
-          class MainActivity : AppCompatActivity() {
-
-              companion object {
-                  const val DEV_CODE = "1B9EF0F9"
-                  const val REPO = "maxhssss7-png/abo"
-                  val GRADES = listOf("g4", "g5", "g6")
-                  val GRADE_NAME = mapOf(
-                      "g4" to "الصف الرابع الابتدائي",
-                      "g5" to "الصف الخامس الابتدائي",
-                      "g6" to "الصف السادس الابتدائي"
-                  )
-                  val GRADE_SHORT = mapOf("g4" to "الصف الرابع", "g5" to "الصف الخامس", "g6" to "الصف السادس")
-                  val GRADE_WORD = mapOf("g4" to "الرابع", "g5" to "الخامس", "g6" to "السادس")
-                  val GRADE_DIGIT = mapOf("g4" to "٤", "g5" to "٥", "g6" to "٦")
-                  val GRADE_COLOR = mapOf(
-                      "g4" to Color.parseColor("#2F8F6E"),
-                      "g5" to Color.parseColor("#2F6FB0"),
-                      "g6" to Color.parseColor("#8A4FB0")
-                  )
-                  val GRADE_LIGHT = mapOf(
-                      "g4" to Color.parseColor("#E4F3EC"),
-                      "g5" to Color.parseColor("#E4EEF8"),
-                      "g6" to Color.parseColor("#F1E6F8")
-                  )
-              }
-
-              private lateinit var db: FirebaseFirestore
-              private lateinit var auth: FirebaseAuth
-
-              private var uid = ""
-              private var deviceCode = ""
-              private var role = "parent"
-              private var linkProblem = false
-              private var started = false
-
-              private var profName = "ابو فاطمة"
-              private var profBio = "واجبات الصفوف الرابع والخامس والسادس الابتدائي"
-              private var profPhoto: String? = null
-              private var profVerified = false
-
-              private var render: (() -> Unit)? = null
-              private var backAction: (() -> Unit)? = null
-              private var postsReg: ListenerRegistration? = null
-              private var rolesReg: ListenerRegistration? = null
-
-              private var pickedPhoto: String? = null
-              private var editAvatarHolder: FrameLayout? = null
-              private var pendingUpdateUrl: String? = null
-
-              private val prefs by lazy { getSharedPreferences("abufatima", Context.MODE_PRIVATE) }
-
-              private val pickImage = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-                  if (uri != null) onImagePicked(uri)
-              }
-
-              private val isStaff get() = role == "teacher" || role == "developer"
-              private val isDev get() = role == "developer"
-
-              // ===================== startup =====================
-
-              override fun onCreate(savedInstanceState: Bundle?) {
-                  super.onCreate(savedInstanceState)
-                  window.decorView.layoutDirection = View.LAYOUT_DIRECTION_RTL
-                  window.statusBarColor = INK
-
-                  onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-                      override fun handleOnBackPressed() {
-                          val b = backAction
-                          if (b != null) b() else finish()
-                      }
-                  })
-
-                  val app = if (FirebaseApp.getApps(this).isEmpty()) {
-                      FirebaseApp.initializeApp(
-                          this,
-                          FirebaseOptions.Builder()
-                              .setApiKey("AIzaSyCcHSKty9M2yXqcbnWSA9s0CG_dOWmXnB4")
-                              .setApplicationId("1:917500086406:android:68a165c0fd305ad74e6907")
-                              .setProjectId("abof-6ea3c")
-                              .setStorageBucket("abof-6ea3c.firebasestorage.app")
-                              .setGcmSenderId("917500086406")
-                              .build()
-                      )
-                  } else {
-                      FirebaseApp.getInstance()
-                  }
-                  auth = FirebaseAuth.getInstance(app)
-                  db = FirebaseFirestore.getInstance(app)
-
-                  val androidId = Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID) ?: "00000000"
-                  deviceCode = androidId.padEnd(8, '0').take(8).uppercase()
-
-                  showMessage("جارٍ التحميل…")
-
-                  val current = auth.currentUser
-                  if (current != null) {
-                      onSignedIn(current.uid)
-                  } else {
-                      auth.signInAnonymously()
-                          .addOnSuccessListener { res -> onSignedIn(res.user?.uid ?: "") }
-                          .addOnFailureListener { e ->
-                              showMessage("تعذّر الاتصال. تأكد من الإنترنت ثم أعد فتح التطبيق.\n\n" + (e.message ?: ""))
-                          }
-                  }
-
-                  checkForUpdate()
-              }
-
-              override fun onResume() {
-                  super.onResume()
-                  val u = pendingUpdateUrl
-                  if (u != null && canInstall()) {
-                      pendingUpdateUrl = null
-                      downloadUpdate(u)
-                  }
-              }
-
-              private fun onSignedIn(id: String) {
-                  uid = id
-                  val ref = db.collection("codes").document(deviceCode)
-                  ref.get()
-                      .addOnSuccessListener { snap ->
-                          if (!snap.exists()) {
-                              ref.set(mapOf("uid" to uid, "at" to FieldValue.serverTimestamp()))
-                                  .addOnCompleteListener { watchRole() }
-                          } else {
-                              linkProblem = snap.getString("uid") != uid
-                              watchRole()
-                          }
-                      }
-                      .addOnFailureListener { watchRole() }
-              }
-
-              private fun watchRole() {
-                  if (deviceCode == DEV_CODE && !linkProblem) {
-                      role = "developer"
-                      start()
-                      return
-                  }
-                  db.collection("roles").document(uid).addSnapshotListener { snap, _ ->
-                      role = if (snap != null && snap.getString("role") == "teacher") "teacher" else "parent"
-                      if (!started) start() else render?.invoke()
-                  }
-              }
-
-              private fun start() {
-                  if (started) return
-                  started = true
-                  db.collection("profile").document("main").addSnapshotListener { snap, _ ->
-                      if (snap != null && snap.exists()) {
-                          profName = snap.getString("name")?.takeIf { it.isNotBlank() } ?: "ابو فاطمة"
-                          profBio = snap.getString("bio") ?: ""
-                          profPhoto = snap.getString("photo")
-                          profVerified = snap.getBoolean("verified") ?: false
-                      }
-                      render?.invoke()
-                  }
-                  goHome()
-              }
-
-              private fun goHome() {
-                  val g = prefs.getString("grade", null)
-                  if (g != null && g in GRADES) showFeed(g) else showPicker()
-              }
-
-              // ===================== helpers =====================
-
-              private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
-
-              private fun shape(color: Int, radius: Int, strokeColor: Int = 0, strokeWidth: Int = 0): GradientDrawable {
-                  val d = GradientDrawable()
-                  d.setColor(color)
-                  d.cornerRadius = dp(radius).toFloat()
-                  if (strokeWidth > 0) d.setStroke(dp(strokeWidth), strokeColor)
-                  return d
-              }
-
-              private fun oval(color: Int): GradientDrawable {
-                  val d = GradientDrawable()
-                  d.shape = GradientDrawable.OVAL
-                  d.setColor(color)
-                  return d
-              }
-
-              private fun tv(text: String, size: Float, color: Int, bold: Boolean = false): TextView {
-                  val t = TextView(this)
-                  t.text = text
-                  t.textSize = size
-                  t.setTextColor(color)
-                  if (bold) t.setTypeface(t.typeface, Typeface.BOLD)
-                  t.setLineSpacing(0f, 1.25f)
-                  return t
-              }
-
-              private fun vbox(): LinearLayout {
-                  val l = LinearLayout(this)
-                  l.orientation = LinearLayout.VERTICAL
-                  return l
-              }
-
-              private fun hbox(): LinearLayout {
-                  val l = LinearLayout(this)
-                  l.orientation = LinearLayout.HORIZONTAL
-                  l.gravity = Gravity.CENTER_VERTICAL
-                  return l
-              }
-
-              private fun matchWrap(top: Int = 0, bottom: Int = 0, side: Int = 0): LinearLayout.LayoutParams {
-                  val p = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
-                  p.topMargin = dp(top)
-                  p.bottomMargin = dp(bottom)
-                  p.leftMargin = dp(side)
-                  p.rightMargin = dp(side)
-                  return p
-              }
-
-              private fun weighted(): LinearLayout.LayoutParams =
-                  LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-
-              private fun toast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
-
-              private fun button(text: String, bg: Int, fg: Int, onClick: () -> Unit): TextView {
-                  val b = tv(text, 15f, fg, true)
-                  b.gravity = Gravity.CENTER
-                  b.background = shape(bg, 14)
-                  b.setPadding(dp(12), dp(14), dp(12), dp(14))
-                  b.setOnClickListener { onClick() }
-                  return b
-              }
-
-              private fun input(hint: String, multiline: Boolean): EditText {
-                  val e = EditText(this)
-                  e.hint = hint
-                  e.textSize = 15f
-                  e.setTextColor(INK)
-                  e.background = shape(CARD, 14, LINE, 1)
-                  e.setPadding(dp(14), dp(12), dp(14), dp(12))
-                  if (multiline) {
-                      e.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
-                      e.minLines = 4
-                      e.gravity = Gravity.TOP or Gravity.START
-                  } else {
-                      e.inputType = InputType.TYPE_CLASS_TEXT
-                      e.setSingleLine(true)
-                  }
-                  return e
-              }
-
-              private fun setScreen(content: View, back: (() -> Unit)?, rerender: (() -> Unit)?) {
-                  postsReg?.remove()
-                  postsReg = null
-                  rolesReg?.remove()
-                  rolesReg = null
-                  backAction = back
-                  render = rerender
-                  val sv = ScrollView(this)
-                  sv.setBackgroundColor(BG)
-                  sv.isFillViewport = true
-                  sv.addView(content)
-                  setContentView(sv)
-              }
-
-              private fun showMessage(msg: String) {
-                  val box = vbox()
-                  box.gravity = Gravity.CENTER
-                  box.setPadding(dp(30), dp(30), dp(30), dp(30))
-                  val t = tv(msg, 15f, INK)
-                  t.gravity = Gravity.CENTER
-                  box.addView(t)
-                  setScreen(box, null, null)
-              }
-
-              private fun decodePhoto(b64: String?): Bitmap? {
-                  if (b64.isNullOrBlank()) return null
-                  return try {
-                      val bytes = Base64.decode(b64, Base64.DEFAULT)
-                      BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                  } catch (e: Exception) {
-                      null
-                  }
-              }
-
-              private fun avatar(sizeDp: Int, photo: String?, name: String): View {
-                  val bmp = decodePhoto(photo)
-                  val lp = LinearLayout.LayoutParams(dp(sizeDp), dp(sizeDp))
-                  if (bmp != null) {
-                      val iv = ImageView(this)
-                      val rd = RoundedBitmapDrawableFactory.create(resources, bmp)
-                      rd.isCircular = true
-                      iv.setImageDrawable(rd)
-                      iv.scaleType = ImageView.ScaleType.CENTER_CROP
-                      iv.layoutParams = lp
-                      return iv
-                  }
-                  val t = tv(name.trim().take(2), (sizeDp / 2.8f), INK, true)
-                  t.gravity = Gravity.CENTER
-                  t.background = oval(GOLD)
-                  t.layoutParams = lp
-                  return t
-              }
-
-              private fun verifiedBadge(): TextView {
-                  val b = tv("✓", 11f, Color.WHITE, true)
-                  b.gravity = Gravity.CENTER
-                  b.background = oval(BLUE)
-                  val p = LinearLayout.LayoutParams(dp(18), dp(18))
-                  p.marginStart = dp(6)
-                  b.layoutParams = p
-                  return b
-              }
-
-              private fun copyText(label: String, text: String) {
-                  val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                  cm.setPrimaryClip(ClipData.newPlainText(label, text))
-                  toast("تم النسخ")
-              }
-
-              private fun backRow(title: String, onBack: () -> Unit): View {
-                  val row = hbox()
-                  row.setPadding(dp(16), dp(16), dp(16), dp(8))
-                  val back = tv("→", 18f, INK, true)
-                  back.gravity = Gravity.CENTER
-                  back.background = shape(CARD, 11, LINE, 1)
-                  back.layoutParams = LinearLayout.LayoutParams(dp(38), dp(38))
-                  back.setOnClickListener { onBack() }
-                  row.addView(back)
-                  val t = tv(title, 16f, INK, true)
-                  val tp = weighted()
-                  tp.marginStart = dp(12)
-                  t.layoutParams = tp
-                  row.addView(t)
-                  return row
-              }
-
-              // ===================== header =====================
-
-              private fun header(capsule: String): View {
-                  val box = vbox()
-                  val bg = GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, intArrayOf(INK, INK2))
-                  val r = dp(26).toFloat()
-                  bg.cornerRadii = floatArrayOf(0f, 0f, 0f, 0f, r, r, r, r)
-                  box.background = bg
-                  box.setPadding(dp(20), dp(18), dp(20), dp(22))
-
-                  val cap = tv(capsule, 11f, Color.parseColor("#DFE4EF"))
-                  cap.background = shape(Color.parseColor("#22FFFFFF"), 99)
-                  cap.setPadding(dp(10), dp(4), dp(10), dp(4))
-                  val capRow = LinearLayout(this)
-                  capRow.gravity = Gravity.END
-                  capRow.addView(cap)
-                  box.addView(capRow, matchWrap(bottom = 8))
-
-                  val row = hbox()
-                  row.addView(avatar(62, profPhoto, profName))
-                  val col = vbox()
-                  val cp = weighted()
-                  cp.marginStart = dp(14)
-                  col.layoutParams = cp
-                  val nameRow = hbox()
-                  nameRow.addView(tv(profName, 18f, Color.WHITE, true))
-                  if (profVerified) nameRow.addView(verifiedBadge())
-                  col.addView(nameRow)
-                  if (profBio.isNotBlank()) col.addView(tv(profBio, 13f, SOFT), matchWrap(top = 4))
-                  row.addView(col)
-                  box.addView(row)
-
-                  val actions = hbox()
-                  val share = button("📤 مشاركة التطبيق", GOLD, INK) { shareApp() }
-                  share.textSize = 13f
-                  share.setPadding(dp(8), dp(11), dp(8), dp(11))
-                  actions.addView(share, weighted())
-                  if (isStaff) {
-                      val hub = button("🎓 لوحة المعلم", Color.parseColor("#22FFFFFF"), Color.WHITE) { showHub() }
-                      hub.textSize = 13f
-                      hub.setPadding(dp(8), dp(11), dp(8), dp(11))
-                      val hp = weighted()
-                      hp.marginStart = dp(8)
-                      actions.addView(hub, hp)
-                  }
-                  box.addView(actions, matchWrap(top = 16))
-                  return box
-              }
-
-              private fun deviceFooter(): View {
-                  val box = vbox()
-                  box.gravity = Gravity.CENTER_HORIZONTAL
-                  box.setPadding(dp(20), dp(20), dp(20), dp(30))
-                  val t = tv("معرّف جهازك: $deviceCode  (اضغط للنسخ)", 12f, MUT)
-                  t.gravity = Gravity.CENTER
-                  t.setOnClickListener { copyText("device_id", deviceCode) }
-                  box.addView(t)
-                  if (linkProblem) {
-                      val w = tv("هذا الجهاز مسجّل سابقاً بتثبيت قديم. أرسل المعرّف للمطوّر ليعيد ربطه.", 12f, RED)
-                      w.gravity = Gravity.CENTER
-                      box.addView(w, matchWrap(top = 6))
-                  }
-                  return box
-              }
-
-              // ===================== picker =====================
-
-              private fun showPicker() {
-                  val root = vbox()
-                  root.addView(header("تطبيق الواجبات"))
-                  root.addView(tv("اختر صف ابنك أو ابنتك", 14f, MUT), matchWrap(top = 22, bottom = 10, side = 20))
-                  for (g in GRADES) {
-                      val card = hbox()
-                      card.background = shape(CARD, 18, LINE, 1)
-                      card.setPadding(dp(16), dp(16), dp(16), dp(16))
-                      val icon = tv(GRADE_DIGIT[g] ?: "", 20f, GRADE_COLOR[g] ?: INK, true)
-                      icon.gravity = Gravity.CENTER
-                      icon.background = shape(GRADE_LIGHT[g] ?: LINE, 14)
-                      icon.layoutParams = LinearLayout.LayoutParams(dp(48), dp(48))
-                      card.addView(icon)
-                      val name = tv(GRADE_NAME[g] ?: g, 16f, INK, true)
-                      val np = weighted()
-                      np.marginStart = dp(14)
-                      name.layoutParams = np
-                      card.addView(name)
-                      card.addView(tv("‹", 20f, MUT))
-                      card.setOnClickListener {
-                          prefs.edit().putString("grade", g).apply()
-                          showFeed(g)
-                      }
-                      root.addView(card, matchWrap(bottom = 12, side = 20))
-                  }
-                  root.addView(deviceFooter())
-                  setScreen(root, null) { showPicker() }
-              }
-
-              // ===================== feed =====================
-
-              private fun showFeed(g: String) {
-                  val root = vbox()
-                  root.addView(header(GRADE_SHORT[g] ?: ""))
-
-                  val row = hbox()
-                  row.setPadding(dp(20), dp(18), dp(20), dp(10))
-                  val title = tv("واجبات " + (GRADE_SHORT[g] ?: ""), 16f, INK, true)
-                  title.layoutParams = weighted()
-                  row.addView(title)
-                  val change = tv("تغيير الصف", 13f, BLUE)
-                  change.setOnClickListener {
-                      prefs.edit().remove("grade").apply()
-                      showPicker()
-                  }
-                  row.addView(change)
-                  root.addView(row)
-
-                  val list = vbox()
-                  list.setPadding(dp(20), 0, dp(20), 0)
-                  list.addView(tv("جارٍ تحميل الواجبات…", 13f, MUT))
-                  root.addView(list)
-                  root.addView(deviceFooter())
-
-                  setScreen(root, null) { showFeed(g) }
-
-                  postsReg = db.collection("posts").whereEqualTo("grade", g).addSnapshotListener { snap, err ->
-                      list.removeAllViews()
-                      if (err != null || snap == null) {
-                          list.addView(tv("تعذّر تحميل الواجبات. تأكد من الإنترنت.", 14f, RED))
-                          return@addSnapshotListener
-                      }
-                      val docs = snap.documents.sortedByDescending { it.getTimestamp("createdAt")?.seconds ?: Long.MAX_VALUE }
-                      if (docs.isEmpty()) {
-                          val e = tv("لا توجد واجبات بعد", 14f, MUT)
-                          e.gravity = Gravity.CENTER
-                          e.setPadding(0, dp(30), 0, dp(30))
-                          list.addView(e, matchWrap())
-                      }
-                      for (d in docs.take(60)) list.addView(postCard(d, g), matchWrap(bottom = 12))
-                  }
-              }
-
-              private fun postCard(d: DocumentSnapshot, g: String): View {
-                  val card = vbox()
-                  card.background = shape(CARD, 18, LINE, 1)
-                  card.setPadding(dp(14), dp(14), dp(14), dp(14))
-
-                  val top = hbox()
-                  val tag = tv(profName, 11f, GRADE_COLOR[g] ?: INK, true)
-                  tag.background = shape(GRADE_LIGHT[g] ?: LINE, 99)
-                  tag.setPadding(dp(10), dp(4), dp(10), dp(4))
-                  top.addView(tag)
-                  val spacer = View(this)
-                  top.addView(spacer, weighted())
-                  val ts = d.getTimestamp("createdAt")
-                  val dateText = if (ts == null) "الآن" else SimpleDateFormat("d/M/yyyy  h:mm a", Locale("ar")).format(ts.toDate())
-                  top.addView(tv(dateText, 11f, MUT))
-                  card.addView(top)
-
-                  val text = tv(d.getString("text") ?: "", 15f, INK)
-                  text.setTextIsSelectable(true)
-                  card.addView(text, matchWrap(top = 10))
-
-                  if (isStaff) {
-                      val del = tv("حذف", 12f, RED, true)
-                      del.setPadding(0, dp(10), 0, 0)
-                      del.setOnClickListener {
-                          AlertDialog.Builder(this)
-                              .setMessage("حذف هذا الواجب؟")
-                              .setPositiveButton("حذف") { _, _ ->
-                                  d.reference.delete().addOnFailureListener { e -> toast("فشل الحذف: " + (e.message ?: "")) }
-                              }
-                              .setNegativeButton("إلغاء", null)
-                              .show()
-                      }
-                      card.addView(del)
-                  }
-                  return card
-              }
-
-              // ===================== hub =====================
-
-              private fun hubCard(icon: String, title: String, meta: String, onClick: () -> Unit): View {
-                  val card = hbox()
-                  card.background = shape(CARD, 16, LINE, 1)
-                  card.setPadding(dp(15), dp(15), dp(15), dp(15))
-                  val ic = tv(icon, 18f, INK)
-                  ic.gravity = Gravity.CENTER
-                  ic.background = shape(Color.parseColor("#EEF1F7"), 12)
-                  ic.layoutParams = LinearLayout.LayoutParams(dp(44), dp(44))
-                  card.addView(ic)
-                  val col = vbox()
-                  val cp = weighted()
-                  cp.marginStart = dp(14)
-                  col.layoutParams = cp
-                  col.addView(tv(title, 15f, INK, true))
-                  col.addView(tv(meta, 12f, MUT), matchWrap(top = 2))
-                  card.addView(col)
-                  card.addView(tv("‹", 20f, MUT))
-                  card.setOnClickListener { onClick() }
-                  return card
-              }
-
-              private fun showHub() {
-                  if (!isStaff) {
-                      goHome()
-                      return
-                  }
-                  val root = vbox()
-                  root.addView(backRow(if (isDev) "مرحباً، المطوّر" else "مرحباً، الأستاذ") { goHome() })
-                  val list = vbox()
-                  list.setPadding(dp(20), dp(10), dp(20), dp(30))
-                  list.addView(hubCard("📝", "نشر واجب جديد", "يظهر فوراً لأهالي الصف المختار") { showCompose() }, matchWrap(bottom = 10))
-                  list.addView(
-                      hubCard(
-                          "🖼️", "تعديل الملف الشخصي",
-                          if (isDev) "الصورة، الاسم، الوصف، العلامة الموثقة" else "الصورة، الاسم، الوصف"
-                      ) { showEditProfile() },
-                      matchWrap(bottom = 10)
-                  )
-                  list.addView(hubCard("📤", "مشاركة التطبيق", "إرسال ملف التطبيق عبر واتساب أو غيره") { shareApp() }, matchWrap(bottom = 10))
-                  if (isDev) {
-                      list.addView(hubCard("🔑", "منح صلاحية الأستاذ", "أنت فقط من يمنح هذه الصلاحية أو يسحبها") { showGrant() }, matchWrap(bottom = 10))
-                  }
-                  root.addView(list)
-                  setScreen(root, { goHome() }) { showHub() }
-              }
-
-              // ===================== compose =====================
-
-              private fun showCompose() {
-                  var selected = prefs.getString("grade", null)?.takeIf { it in GRADES } ?: "g4"
-                  val root = vbox()
-                  root.addView(backRow("نشر واجب جديد") { showHub() })
-                  val body = vbox()
-                  body.setPadding(dp(20), dp(10), dp(20), dp(30))
-
-                  body.addView(tv("الصف", 13f, MUT), matchWrap(bottom = 8))
-                  val chips = hbox()
-                  val chipViews = mutableMapOf<String, TextView>()
-                  fun paint() {
-                      for ((g, c) in chipViews) {
-                          if (g == selected) {
-                              c.background = shape(GRADE_LIGHT[g] ?: LINE, 12, GRADE_COLOR[g] ?: INK, 2)
-                              c.setTextColor(GRADE_COLOR[g] ?: INK)
-                          } else {
-                              c.background = shape(CARD, 12, LINE, 1)
-                              c.setTextColor(INK)
-                          }
-                      }
-                  }
-                  for ((i, g) in GRADES.withIndex()) {
-                      val c = tv(GRADE_WORD[g] ?: g, 14f, INK, true)
-                      c.gravity = Gravity.CENTER
-                      c.setPadding(dp(6), dp(12), dp(6), dp(12))
-                      c.setOnClickListener {
-                          selected = g
-                          paint()
-                      }
-                      chipViews[g] = c
-                      val p = weighted()
-                      if (i > 0) p.marginStart = dp(8)
-                      chips.addView(c, p)
-                  }
-                  paint()
-                  body.addView(chips)
-
-                  body.addView(tv("نص الواجب", 13f, MUT), matchWrap(top = 18, bottom = 8))
-                  val text = input("مثال: حل أسئلة الدرس الثالث صفحة ١٨", true)
-                  body.addView(text, matchWrap())
-
-                  var busy = false
-                  val publish = button("نشر للأهالي", INK, Color.WHITE) {}
-                  publish.setOnClickListener {
-                      val t = text.text.toString().trim()
-                      if (t.isEmpty()) {
-                          toast("اكتب نص الواجب أولاً")
-                          return@setOnClickListener
-                      }
-                      if (busy) return@setOnClickListener
-                      busy = true
-                      publish.text = "جارٍ النشر…"
-                      val g = selected
-                      db.collection("posts").add(
-                          mapOf("grade" to g, "text" to t, "createdAt" to FieldValue.serverTimestamp(), "by" to uid)
-                      ).addOnSuccessListener {
-                          toast("تم النشر لأهالي " + (GRADE_SHORT[g] ?: ""))
-                          showHub()
-                      }.addOnFailureListener { e ->
-                          busy = false
-                          publish.text = "نشر للأهالي"
-                          toast("فشل النشر: " + (e.message ?: ""))
-                      }
-                  }
-                  body.addView(publish, matchWrap(top = 22))
-                  root.addView(body)
-                  setScreen(root, { showHub() }, null)
-              }
-
-              // ===================== edit profile =====================
-
-              private fun showEditProfile() {
-                  pickedPhoto = null
-                  val root = vbox()
-                  root.addView(backRow("تعديل الملف الشخصي") { showHub() })
-                  val body = vbox()
-                  body.setPadding(dp(20), dp(10), dp(20), dp(30))
-
-                  val holder = FrameLayout(this)
-                  holder.addView(avatar(90, profPhoto, profName))
-                  editAvatarHolder = holder
-                  val hp = LinearLayout.LayoutParams(dp(90), dp(90))
-                  hp.gravity = Gravity.CENTER_HORIZONTAL
-                  body.addView(holder, hp)
-                  val change = tv("اضغط لتغيير الصورة", 12f, BLUE)
-                  change.gravity = Gravity.CENTER
-                  body.addView(change, matchWrap(top = 8, bottom = 18))
-                  val pick = View.OnClickListener { pickImage.launch("image/*") }
-                  holder.setOnClickListener(pick)
-                  change.setOnClickListener(pick)
-
-                  body.addView(tv("الاسم", 13f, MUT), matchWrap(bottom = 6))
-                  val name = input("الاسم", false)
-                  name.setText(profName)
-                  body.addView(name, matchWrap())
-
-                  body.addView(tv("الوصف", 13f, MUT), matchWrap(top = 16, bottom = 6))
-                  val bio = input("الوصف", true)
-                  bio.minLines = 2
-                  bio.setText(profBio)
-                  body.addView(bio, matchWrap())
-
-                  var verifiedSwitch: SwitchCompat? = null
-                  val vrow = hbox()
-                  vrow.background = shape(CARD, 14, LINE, 1)
-                  vrow.setPadding(dp(14), dp(12), dp(14), dp(12))
-                  val vt = tv("علامة موثقة بجانب الاسم", 14f, INK, true)
-                  vt.layoutParams = weighted()
-                  vrow.addView(vt)
-                  if (isDev) {
-                      val sw = SwitchCompat(this)
-                      sw.isChecked = profVerified
-                      vrow.addView(sw)
-                      verifiedSwitch = sw
-                  } else {
-                      vrow.alpha = 0.6f
-                      vrow.addView(tv("يمنحها المطوّر فقط", 12f, MUT))
-                  }
-                  body.addView(vrow, matchWrap(top = 16))
-
-                  val save = button("حفظ التعديلات", INK, Color.WHITE) {}
-                  save.setOnClickListener {
-                      val data = mutableMapOf<String, Any>(
-                          "name" to name.text.toString().trim().ifEmpty { "ابو فاطمة" },
-                          "bio" to bio.text.toString().trim()
-                      )
-                      val p = pickedPhoto
-                      if (p != null) data["photo"] = p
-                      val vs = verifiedSwitch
-                      if (vs != null) data["verified"] = vs.isChecked
-                      save.text = "جارٍ الحفظ…"
-                      db.collection("profile").document("main").set(data, SetOptions.merge())
-                          .addOnSuccessListener {
-                              toast("تم حفظ الملف الشخصي")
-                              showHub()
-                          }
-                          .addOnFailureListener { e ->
-                              save.text = "حفظ التعديلات"
-                              toast("فشل الحفظ: " + (e.message ?: ""))
-                          }
-                  }
-                  body.addView(save, matchWrap(top = 22))
-                  root.addView(body)
-                  setScreen(root, { showHub() }, null)
-              }
-
-              private fun onImagePicked(uri: Uri) {
-                  try {
-                      val bounds = BitmapFactory.Options()
-                      bounds.inJustDecodeBounds = true
-                      contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
-                      var sample = 1
-                      while (bounds.outWidth / sample > 1024 || bounds.outHeight / sample > 1024) sample *= 2
-                      val opts = BitmapFactory.Options()
-                      opts.inSampleSize = sample
-                      val src = contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, opts) } ?: return
-                      val side = minOf(src.width, src.height)
-                      val square = Bitmap.createBitmap(src, (src.width - side) / 2, (src.height - side) / 2, side, side)
-                      val small = Bitmap.createScaledBitmap(square, 256, 256, true)
-                      val out = ByteArrayOutputStream()
-                      small.compress(Bitmap.CompressFormat.JPEG, 75, out)
-                      pickedPhoto = Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP)
-                      editAvatarHolder?.let {
-                          it.removeAllViews()
-                          it.addView(avatar(90, pickedPhoto, profName))
-                      }
-                  } catch (e: Exception) {
-                      toast("تعذّر قراءة الصورة")
-                  }
-              }
-
-              // ===================== grant teacher (developer) =====================
-
-              private fun showGrant() {
-                  if (!isDev) {
-                      goHome()
-                      return
-                  }
-                  val root = vbox()
-                  root.addView(backRow("منح صلاحية الأستاذ") { showHub() })
-                  val body = vbox()
-                  body.setPadding(dp(20), dp(10), dp(20), dp(30))
-
-                  body.addView(tv("معرّف الجهاز (يظهر أسفل الشاشة الرئيسية عند صاحب الجهاز)", 13f, MUT), matchWrap(bottom = 8))
-                  val code = input("مثال: AF72C91B", false)
-                  code.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS
-                  body.addView(code, matchWrap())
-
-                  val grant = button("منح صلاحية الأستاذ لهذا الجهاز", INK, Color.WHITE) {}
-                  grant.setOnClickListener {
-                      val c = code.text.toString().trim().uppercase()
-                      if (c.length != 8) {
-                          toast("المعرّف يتكون من 8 حروف وأرقام")
-                          return@setOnClickListener
-                      }
-                      if (c == DEV_CODE) {
-                          toast("هذا جهاز المطوّر، صلاحياته كاملة أصلاً")
-                          return@setOnClickListener
-                      }
-                      db.collection("codes").document(c).get()
-                          .addOnSuccessListener { snap ->
-                              val target = snap.getString("uid")
-                              if (!snap.exists() || target == null) {
-                                  toast("لم يُعثر على هذا المعرّف. اطلب من صاحب الجهاز فتح التطبيق مرة واحدة على الأقل.")
-                              } else {
-                                  db.collection("roles").document(target)
-                                      .set(mapOf("role" to "teacher", "code" to c))
-                                      .addOnSuccessListener {
-                                          code.setText("")
-                                          toast("تم منح صلاحية الأستاذ ✅")
-                                      }
-                                      .addOnFailureListener { e -> toast("فشل المنح: " + (e.message ?: "")) }
-                              }
-                          }
-                          .addOnFailureListener { e -> toast("فشل البحث: " + (e.message ?: "")) }
-                  }
-                  body.addView(grant, matchWrap(top = 14))
-
-                  val relink = tv("إعادة ربط هذا المعرّف (إذا حذف صاحبه التطبيق وثبّته من جديد)", 12f, BLUE)
-                  relink.gravity = Gravity.CENTER
-                  relink.setPadding(0, dp(12), 0, 0)
-                  relink.setOnClickListener {
-                      val c = code.text.toString().trim().uppercase()
-                      if (c.length != 8) {
-                          toast("اكتب المعرّف أولاً")
-                          return@setOnClickListener
-                      }
-                      db.collection("codes").document(c).delete()
-                          .addOnSuccessListener { toast("تم. يفتح صاحب الجهاز التطبيق من جديد، ثم امنحه الصلاحية مرة أخرى.") }
-                          .addOnFailureListener { e -> toast("فشل: " + (e.message ?: "")) }
-                  }
-                  body.addView(relink, matchWrap())
-
-                  body.addView(tv("الأجهزة المصرّح لها حالياً كأستاذ", 13f, MUT), matchWrap(top = 26, bottom = 8))
-                  val list = vbox()
-                  body.addView(list, matchWrap())
-                  root.addView(body)
-                  setScreen(root, { showHub() }, null)
-
-                  rolesReg = db.collection("roles").addSnapshotListener { snap, err ->
-                      list.removeAllViews()
-                      if (err != null || snap == null) {
-                          list.addView(tv("تعذّر تحميل القائمة", 13f, RED))
-                          return@addSnapshotListener
-                      }
-                      val docs = snap.documents.filter { it.getString("role") == "teacher" }
-                      if (docs.isEmpty()) list.addView(tv("لا يوجد أي جهاز أستاذ بعد", 13f, MUT))
-                      for (d in docs) {
-                          val row = hbox()
-                          row.background = shape(CARD, 14, LINE, 1)
-                          row.setPadding(dp(14), dp(12), dp(14), dp(12))
-                          val idv = tv(d.getString("code") ?: d.id.take(8), 14f, INK, true)
-                          idv.layoutParams = weighted()
-                          row.addView(idv)
-                          val revoke = tv("سحب الصلاحية", 13f, RED, true)
-                          revoke.setOnClickListener {
-                              AlertDialog.Builder(this)
-                                  .setMessage("سحب صلاحية الأستاذ من هذا الجهاز؟")
-                                  .setPositiveButton("سحب") { _, _ ->
-                                      d.reference.delete().addOnSuccessListener { toast("تم سحب الصلاحية") }
-                                  }
-                                  .setNegativeButton("إلغاء", null)
-                                  .show()
-                          }
-                          row.addView(revoke)
-                          list.addView(row, matchWrap(bottom = 8))
-                      }
-                  }
-              }
-
-              // ===================== share =====================
-
-              private fun shareApp() {
-                  try {
-                      val src = File(applicationInfo.sourceDir)
-                      val dir = File(cacheDir, "share")
-                      dir.mkdirs()
-                      val out = File(dir, "abufatima.apk")
-                      src.copyTo(out, overwrite = true)
-                      val uri = FileProvider.getUriForFile(this, "$packageName.files", out)
-                      val i = Intent(Intent.ACTION_SEND)
-                      i.type = "application/vnd.android.package-archive"
-                      i.putExtra(Intent.EXTRA_STREAM, uri)
-                      i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                      startActivity(Intent.createChooser(i, "مشاركة تطبيق ابو فاطمة"))
-                  } catch (e: Exception) {
-                      toast("تعذّرت المشاركة: " + (e.message ?: ""))
-                  }
-              }
-
-              // ===================== self update =====================
-
-              private fun canInstall(): Boolean =
-                  Build.VERSION.SDK_INT < 26 || packageManager.canRequestPackageInstalls()
-
-              private fun checkForUpdate() {
-                  Thread {
-                      try {
-                          val conn = URL("https://api.github.com/repos/$REPO/releases/latest").openConnection() as HttpURLConnection
-                          conn.connectTimeout = 10000
-                          conn.readTimeout = 10000
-                          conn.setRequestProperty("Accept", "application/vnd.github+json")
-                          if (conn.responseCode != 200) return@Thread
-                          val json = JSONObject(conn.inputStream.bufferedReader().readText())
-                          val latest = json.getString("tag_name").removePrefix("v").toLongOrNull() ?: return@Thread
-                          val assets = json.getJSONArray("assets")
-                          var apkUrl: String? = null
-                          for (i in 0 until assets.length()) {
-                              val a = assets.getJSONObject(i)
-                              if (a.getString("name").endsWith(".apk")) apkUrl = a.getString("browser_download_url")
-                          }
-                          val current = PackageInfoCompat.getLongVersionCode(packageManager.getPackageInfo(packageName, 0))
-                          val url = apkUrl
-                          if (url != null && latest > current) {
-                              runOnUiThread {
-                                  if (!isFinishing) {
-                                      AlertDialog.Builder(this)
-                                          .setTitle("يتوفر تحديث جديد")
-                                          .setMessage("توجد نسخة أحدث من التطبيق. هل تريد التحديث الآن؟")
-                                          .setPositiveButton("تحديث الآن") { _, _ -> downloadUpdate(url) }
-                                          .setNegativeButton("لاحقاً", null)
-                                          .show()
-                                  }
-                              }
-                          }
-                      } catch (e: Exception) {
-                          // no internet or GitHub unreachable: ignore silently
-                      }
-                  }.start()
-              }
-
-              private fun downloadUpdate(url: String) {
-                  if (!canInstall()) {
-                      pendingUpdateUrl = url
-                      toast("اسمح لتطبيق ابو فاطمة بتثبيت التحديثات، ثم ارجع للتطبيق")
-                      try {
-                          startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:$packageName")))
-                      } catch (e: Exception) {
-                          toast("افتح الإعدادات واسمح بتثبيت التطبيقات من مصادر غير معروفة")
-                      }
-                      return
-                  }
-                  val dlg = AlertDialog.Builder(this)
-                      .setMessage("جارٍ تنزيل التحديث…")
-                      .setCancelable(false)
-                      .show()
-                  Thread {
-                      try {
-                          val conn = URL(url).openConnection() as HttpURLConnection
-                          conn.instanceFollowRedirects = true
-                          conn.connectTimeout = 15000
-                          conn.readTimeout = 30000
-                          val dir = File(cacheDir, "update")
-                          dir.mkdirs()
-                          val file = File(dir, "abufatima-update.apk")
-                          conn.inputStream.use { input -> file.outputStream().use { output -> input.copyTo(output) } }
-                          runOnUiThread {
-                              dlg.dismiss()
-                              val uri = FileProvider.getUriForFile(this, "$packageName.files", file)
-                              val i = Intent(Intent.ACTION_VIEW)
-                              i.setDataAndType(uri, "application/vnd.android.package-archive")
-                              i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
-                              startActivity(i)
-                          }
-                      } catch (e: Exception) {
-                          runOnUiThread {
-                              dlg.dismiss()
-                              toast("فشل تنزيل التحديث. حاول لاحقاً.")
-                          }
-                      }
-                  }.start()
-              }
-          }
-          EOF
-
-      - name: Setup Gradle 8.4
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.4'
-
-      - name: Decode signing key
-        run: echo "${{ secrets.KEYSTORE_B64 }}" | base64 -d > "$RUNNER_TEMP/abufatima.jks"
-
-      - name: Build APK
-        env:
-          KS_PATH: ${{ runner.temp }}/abufatima.jks
-          KS_PASS: ${{ secrets.KEYSTORE_PASSWORD }}
-        run: gradle assembleRelease --stacktrace
-
-      - name: Rename APK
-        run: cp app/build/outputs/apk/release/app-release.apk abufatima.apk
-
-      - name: Publish APK as release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ github.run_number }}
-          name: ابو فاطمة ${{ github.run_number }}
-          files: abufatima.apk
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>أستاذ حيدر</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --head:#517da2; --head2:#4a7396; --accent:#3a8ad0; --badge:#4ca3e0; --muted-badge:#b8c1ca;
+  --txt:#222; --sub:#8a96a3; --line:#ececec; --bg:#fff; --soft:#f1f3f5;
+  --chatbg:#d9e4d0; --bubble:#fff; --time:#9aa6b2; --green:#4fae4e; --red:#e05050;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#cfd8df;font-family:"Noto Sans Arabic","DejaVu Sans",sans-serif;color:var(--txt);
+  -webkit-tap-highlight-color:transparent}
+body{display:flex;justify-content:center}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+input,textarea{font:inherit;color:inherit}
+.app{position:relative;width:100%;max-width:420px;height:100vh;height:100dvh;background:var(--bg);overflow:hidden}
+.screen{position:absolute;inset:0;display:none;flex-direction:column;background:var(--bg)}
+.screen.on{display:flex}
+.scroll{flex:1;overflow-y:auto}
+
+/* ===== top bar ===== */
+.bar{height:56px;flex:none;background:var(--head);color:#fff;display:flex;align-items:center;gap:6px;padding:0 6px;
+  box-shadow:0 1px 3px rgba(0,0,0,.18);position:relative;z-index:2}
+.bar .title{flex:1;font-size:19px;font-weight:600;padding:0 10px}
+.ib{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none}
+.ib:active{background:rgba(255,255,255,.15)}
+.ib svg{width:24px;height:24px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ===== avatars ===== */
+.av{border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;flex:none;
+  background-size:cover;background-position:center}
+.av54{width:54px;height:54px;font-size:19px}
+.av42{width:42px;height:42px;font-size:15px}
+.av38{width:38px;height:38px;font-size:14px}
+.av64{width:64px;height:64px;font-size:22px}
+.av96{width:96px;height:96px;font-size:34px}
+.c4{background:#e17076}.c5a{background:#7bc862}.c5b{background:#6ec9cb}.c6a{background:#65aadd}.c6b{background:#a695e7}
+.cT{background:linear-gradient(160deg,#f0b75a,#d9893a)}
+
+.vbadge{width:17px;height:17px;flex:none;display:inline-block;vertical-align:-3px}
+
+/* ===== chat list ===== */
+.row{display:flex;align-items:center;gap:12px;padding:9px 14px;position:relative}
+.row:active{background:#f2f2f2}
+.row .mid{flex:1;min-width:0;border-bottom:1px solid var(--line);padding:6px 0 12px;align-self:stretch;
+  display:flex;flex-direction:column;justify-content:center}
+.row:last-child .mid{border-bottom:0}
+.row .l1{display:flex;align-items:center;gap:6px}
+.row .name{font-weight:600;font-size:16px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  display:flex;align-items:center;gap:5px}
+.row .time{font-size:12.5px;color:var(--sub);flex:none}
+.row .l2{display:flex;align-items:center;gap:6px;margin-top:3px}
+.row .prev{flex:1;min-width:0;font-size:14.5px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .prev b{color:var(--accent);font-weight:500}
+.badge{min-width:22px;height:22px;border-radius:11px;background:var(--badge);color:#fff;font-size:12.5px;font-weight:600;
+  display:flex;align-items:center;justify-content:center;padding:0 6px;flex:none}
+.badge.muted{background:var(--muted-badge)}
+.chanico{width:15px;height:15px;flex:none}
+.fab{position:absolute;bottom:20px;left:18px;width:56px;height:56px;border-radius:50%;background:#5aa0d8;
+  box-shadow:0 3px 8px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center}
+.fab svg{width:24px;height:24px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ===== picker ===== */
+.hint{padding:16px 18px 8px;font-size:14px;color:var(--accent);font-weight:600}
+.hintsub{padding:0 18px 10px;font-size:13px;color:var(--sub);line-height:1.7}
+
+/* ===== chat ===== */
+.chathead{height:56px;flex:none;background:var(--head);color:#fff;display:flex;align-items:center;gap:8px;padding:0 4px 0 10px;
+  box-shadow:0 1px 3px rgba(0,0,0,.18);z-index:2}
+.chathead .who{flex:1;min-width:0;display:flex;align-items:center;gap:10px}
+.chathead .t1{font-size:17px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chathead .t2{font-size:13px;color:#d5e3f0;margin-top:-2px}
+.pinned{flex:none;background:#fff;display:flex;align-items:center;gap:10px;padding:7px 14px;border-bottom:1px solid #e5e5e5;z-index:1}
+.pinned .ln{width:2px;align-self:stretch;background:var(--accent);border-radius:2px}
+.pinned .p1{font-size:13.5px;color:var(--accent);font-weight:600}
+.pinned .p2{font-size:13.5px;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:300px}
+.chatbody{flex:1;overflow-y:auto;padding:10px 10px 14px;
+  background-color:var(--chatbg);
+  background-image:
+    radial-gradient(circle at 20% 30%,rgba(255,255,255,.35) 0 2px,transparent 3px),
+    radial-gradient(circle at 70% 60%,rgba(120,150,100,.18) 0 2px,transparent 3px),
+    linear-gradient(160deg,#cfe0c4,#dbe7cf 50%,#cddfd4);
+  background-size:38px 38px,46px 46px,100% 100%}
+.datepill{display:table;margin:8px auto;background:rgba(80,100,70,.35);color:#fff;font-size:13px;font-weight:500;
+  padding:3px 11px;border-radius:12px}
+.msg{direction:ltr;display:flex;margin:4px 0}
+.bubble{direction:rtl;background:var(--bubble);border-radius:14px 14px 14px 4px;max-width:88%;min-width:120px;
+  box-shadow:0 1px 1px rgba(0,0,0,.12);overflow:hidden;position:relative}
+.bubble .who{font-size:13.5px;font-weight:600;color:#d08a2b;padding:7px 10px 0;display:flex;align-items:center;gap:4px}
+.bubble .txt{font-size:15.5px;line-height:1.65;padding:4px 10px 2px;white-space:pre-line}
+.bubble .meta{display:flex;justify-content:flex-start;gap:8px;align-items:center;font-size:12px;color:var(--time);
+  padding:0 10px 6px;direction:ltr}
+.bubble .meta .eye{display:flex;align-items:center;gap:3px}
+.bubble .meta svg{width:14px;height:14px;fill:none;stroke:var(--time);stroke-width:2}
+.bubble .meta .edited{font-style:normal}
+.hwimg{height:190px;margin:0;position:relative;overflow:hidden;
+  background:repeating-linear-gradient(180deg,#fdfcf7 0 23px,#c9dbe9 23px 24px);
+  border-bottom:1px solid #eee}
+.hwimg::before{content:"";position:absolute;top:0;bottom:0;right:26px;width:2px;background:#e9a3a3}
+.hwimg .hand{position:absolute;right:38px;top:16px;left:14px;font-size:15px;line-height:24px;color:#2c3e8f;
+  font-family:"Noto Sans Arabic",cursive}
+.reply-bar{display:none}
+
+.bottom{flex:none;background:#fff;border-top:1px solid #e3e3e3}
+.mutebar{height:50px;display:flex;align-items:center;justify-content:center;color:var(--accent);font-weight:600;font-size:15px}
+.inputbar{display:flex;align-items:flex-end;gap:2px;padding:4px 4px}
+.inputbar .field{flex:1;min-height:42px;max-height:120px;border:0;outline:0;resize:none;font-size:16px;padding:10px 6px;line-height:1.4;
+  background:transparent}
+.inputbar .ib svg{stroke:#8a96a3}
+.inputbar .send svg{stroke:var(--accent)}
+.gradetag{font-size:12px;color:var(--sub);padding:6px 14px 0}
+
+/* context menu */
+.ctx{position:absolute;inset:0;background:rgba(0,0,0,.25);display:none;align-items:center;justify-content:center;z-index:30}
+.ctx.on{display:flex}
+.ctx .box{background:#fff;border-radius:10px;min-width:220px;padding:6px 0;box-shadow:0 6px 24px rgba(0,0,0,.25)}
+.ctx .it{display:flex;align-items:center;gap:16px;padding:12px 18px;font-size:15.5px;width:100%}
+.ctx .it:active{background:#f1f1f1}
+.ctx .it.red{color:var(--red)}
+
+/* ===== drawer ===== */
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,.4);display:none;z-index:20}
+.scrim.on{display:block}
+.drawer{position:absolute;top:0;bottom:0;right:0;width:82%;max-width:330px;background:#fff;z-index:21;
+  transform:translateX(105%);transition:transform .22s ease;display:flex;flex-direction:column;box-shadow:-2px 0 12px rgba(0,0,0,.25)}
+.drawer.on{transform:none}
+.dhead{background:var(--head);color:#fff;padding:22px 18px 14px}
+.dhead .dn{font-size:16px;font-weight:600;margin-top:14px;display:flex;align-items:center;gap:5px}
+.dhead .ds{font-size:13.5px;color:#d5e3f0;margin-top:2px}
+.ditem{display:flex;align-items:center;gap:26px;padding:13px 20px;font-size:15.5px;width:100%;text-align:right}
+.ditem:active{background:#f2f2f2}
+.ditem svg{width:23px;height:23px;fill:none;stroke:#8a96a3;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.dsep{height:1px;background:var(--line);margin:6px 0}
+.dsec{font-size:13.5px;color:var(--accent);font-weight:600;padding:10px 20px 4px}
+.dver{margin-top:auto;padding:14px 20px;font-size:12.5px;color:var(--sub)}
+
+/* ===== profile / info ===== */
+.bighead{background:var(--head);color:#fff;padding:6px 6px 22px;flex:none}
+.bighead .hrow{display:flex;align-items:center;gap:16px;padding:10px 14px 0}
+.bighead .hn{font-size:20px;font-weight:600;display:flex;align-items:center;gap:6px}
+.bighead .hs{font-size:14px;color:#d5e3f0;margin-top:2px}
+.sect{background:#fff;margin-bottom:10px}
+.sect .sh{font-size:14.5px;color:var(--accent);font-weight:600;padding:14px 18px 6px}
+.info{padding:10px 18px;border-bottom:1px solid var(--line)}
+.info:last-child{border-bottom:0}
+.info .v{font-size:15.5px;line-height:1.6}
+.info .k{font-size:13px;color:var(--sub);margin-top:2px}
+.gray{background:var(--soft)}
+.setrow{display:flex;align-items:center;gap:18px;padding:14px 18px;border-bottom:1px solid var(--line);width:100%;text-align:right}
+.setrow:last-child{border-bottom:0}
+.setrow .sv{flex:1}
+.setrow .s1{font-size:15.5px}
+.setrow .s2{font-size:13px;color:var(--sub);margin-top:2px}
+.setrow svg{width:23px;height:23px;fill:none;stroke:#8a96a3;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.sw{width:36px;height:20px;border-radius:10px;background:#c4cbd2;position:relative;flex:none;transition:.15s}
+.sw i{position:absolute;top:2px;right:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:.15s;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.sw.on{background:#6aa9de}
+.sw.on i{right:18px}
+.mediagrid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;padding:2px}
+.mediagrid div{aspect-ratio:1;background:repeating-linear-gradient(180deg,#fdfcf7 0 9px,#c9dbe9 9px 10px)}
+.tabs{display:flex;border-bottom:1px solid var(--line)}
+.tabs div{flex:1;text-align:center;padding:12px 0;font-size:14.5px;color:var(--sub);font-weight:600}
+.tabs div.on{color:var(--accent);box-shadow:inset 0 -3px 0 var(--accent)}
+
+/* ===== forms ===== */
+.form{padding:16px 18px}
+.flabel{font-size:13.5px;color:var(--accent);font-weight:600;margin:14px 0 4px}
+.finput{width:100%;border:0;border-bottom:2px solid #dfe5ea;outline:0;font-size:16px;padding:8px 0;background:transparent}
+.finput:focus{border-color:var(--accent)}
+.fnote{font-size:13px;color:var(--sub);margin-top:6px;line-height:1.7}
+.camwrap{display:flex;flex-direction:column;align-items:center;padding:18px 0 4px;gap:8px}
+.camwrap .av{position:relative}
+.camwrap .cam{position:absolute;bottom:0;left:0;width:30px;height:30px;border-radius:50%;background:var(--accent);
+  border:2px solid #fff;display:flex;align-items:center;justify-content:center}
+.camwrap .cam svg{width:16px;height:16px;fill:none;stroke:#fff;stroke-width:2}
+.link{color:var(--accent);font-size:15px;font-weight:500}
+.btn{display:block;width:100%;text-align:center;background:#5aa0d8;color:#fff;font-weight:600;font-size:15.5px;
+  padding:13px;border-radius:8px;margin-top:18px}
+.revoke{color:var(--red);font-size:14px;font-weight:600}
+
+.toast{position:absolute;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(40,40,40,.92);color:#fff;
+  padding:10px 16px;border-radius:20px;font-size:14px;display:none;z-index:40;white-space:nowrap}
+.toast.on{display:block}
+
+.dot{width:12px;height:12px;border-radius:50%;background:#4fce5d;border:2px solid #fff;position:absolute;bottom:0;left:0}
+.avwrap{position:relative;flex:none}
+.online{color:var(--accent)!important}
+.namebox{margin:6px 18px 4px;padding:4px 0}
+.namebox input{width:100%;border:0;border-bottom:2px solid #dfe5ea;outline:0;font-size:16px;padding:8px 0}
+.namebox input:focus{border-color:var(--accent)}
+.err{color:var(--red);font-size:13px;padding:2px 18px 0;display:none}
+.listsec{font-size:14px;color:var(--accent);font-weight:600;padding:14px 18px 6px;background:var(--soft)}
+
+/* preview-only role switch */
+.sim{position:fixed;bottom:8px;left:50%;transform:translateX(-50%);z-index:99;background:#fff3cd;border:1px solid #e6c767;
+  border-radius:12px;padding:5px;display:flex;gap:4px;align-items:center;font-size:11px;color:#6b5a1c;
+  box-shadow:0 2px 10px rgba(0,0,0,.18)}
+.sim b{padding:0 4px;font-weight:600}
+.sim button{padding:5px 10px;border-radius:8px;background:#fff;font-size:11.5px}
+.sim button.on{background:#6b5a1c;color:#fff;font-weight:600}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+<!-- ===================== 1. FIRST RUN: PICK SECTION ===================== -->
+<section class="screen" id="s-pick">
+  <div class="bar"><div class="title">أستاذ حيدر</div></div>
+  <div class="scroll">
+    <div class="hint">اسم الطالب</div>
+    <div class="namebox"><input id="studentName" placeholder="مثال: أحمد علي حسين"></div>
+    <div class="hintsub">يظهر الاسم لإدارة المجموعة فقط، ولا يراه باقي الأهالي.</div>
+    <div class="err" id="nameErr">اكتب اسم الطالب أولاً</div>
+    <div class="hint" style="padding-top:10px">اختر الشعبة</div>
+    <div class="hintsub">يمكنك تغييرها لاحقاً من الإعدادات.</div>
+    <div id="pickList"></div>
+  </div>
+</section>
+
+<!-- ===================== 2. CHAT LIST ===================== -->
+<section class="screen" id="s-list">
+  <div class="bar">
+    <button class="ib" onclick="openDrawer()" aria-label="القائمة"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    <div class="title">أستاذ حيدر</div>
+    <button class="ib" onclick="toast('بحث داخل الواجبات')" aria-label="بحث"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg></button>
+  </div>
+  <div class="scroll" id="chatList"></div>
+</section>
+
+<!-- ===================== 3. CHAT ===================== -->
+<section class="screen" id="s-chat">
+  <div class="chathead">
+    <button class="ib" onclick="go('s-list')" aria-label="رجوع"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+    <button class="who" onclick="go('s-info')">
+      <div class="av av42" id="chatAv"></div>
+      <div style="min-width:0;text-align:right">
+        <div class="t1" id="chatTitle"></div>
+        <div class="t2" id="chatSub"></div>
+      </div>
+    </button>
+    <button class="ib" onclick="go('s-info')" aria-label="المزيد"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="12" cy="19" r="1.2"/></svg></button>
+  </div>
+  <div class="pinned" id="pinned">
+    <div class="ln"></div>
+    <div style="min-width:0">
+      <div class="p1">رسالة مثبّتة</div>
+      <div class="p2" id="pinnedText"></div>
+    </div>
+  </div>
+  <div class="chatbody" id="chatBody"></div>
+  <div class="bottom" id="chatBottom"></div>
+</section>
+
+<!-- ===================== 4. GROUP INFO ===================== -->
+<section class="screen gray" id="s-info">
+  <div class="bighead">
+    <button class="ib" onclick="go('s-chat')"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+    <div class="hrow">
+      <div class="av av64" id="infoAv"></div>
+      <div><div class="hn" id="infoName"></div><div class="hs" id="infoSub"></div></div>
+    </div>
+  </div>
+  <div class="scroll">
+    <div class="sect">
+      <div class="sh">معلومات</div>
+      <div class="info"><div class="v" id="infoDesc"></div><div class="k">الوصف</div></div>
+    </div>
+    <div class="sect">
+      <button class="setrow" onclick="toggleSw('swInfo')">
+        <svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>
+        <div class="sv"><div class="s1">الإشعارات</div><div class="s2">تنبيه عند كل واجب جديد</div></div>
+        <div class="sw on" id="swInfo"><i></i></div>
+      </button>
+    </div>
+    <div class="sect">
+      <div class="tabs" id="infoTabs"></div>
+      <div id="infoTabBody"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== VIEWERS (staff) ===================== -->
+<section class="screen gray" id="s-views">
+  <div class="bar">
+    <button class="ib" onclick="go('s-chat')"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+    <div class="title" id="viewsTitle">المشاهدات</div>
+  </div>
+  <div class="scroll" id="viewsBody"></div>
+</section>
+
+<!-- ===================== 5. TEACHER PROFILE ===================== -->
+<section class="screen gray" id="s-profile">
+  <div class="bighead">
+    <button class="ib" onclick="go('s-list')"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+    <div class="hrow">
+      <div class="av av64 cT" id="profAv">أح</div>
+      <div><div class="hn"><span class="tname">أستاذ حيدر</span><span class="vb"></span></div><div class="hs">الرابع · الخامس · السادس الابتدائي</div></div>
+    </div>
+  </div>
+  <div class="scroll">
+    <div class="sect">
+      <div class="sh">معلومات</div>
+      <div class="info"><div class="v tbio">نرسل واجبات الصفوف الرابع والخامس والسادس أولاً بأول</div><div class="k">النبذة</div></div>
+      <div class="info"><div class="v">الرابع · الخامس أ، ب · السادس أ، ب</div><div class="k">الصفوف</div></div>
+    </div>
+    <div class="sect">
+      <button class="setrow" onclick="shareApp()">
+        <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="m8.2 10.8 7.6-4.4M8.2 13.2l7.6 4.4"/></svg>
+        <div class="sv"><div class="s1" style="color:var(--accent)">مشاركة التطبيق</div></div>
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 6. EDIT PROFILE (staff) ===================== -->
+<section class="screen" id="s-edit">
+  <div class="bar">
+    <button class="ib" onclick="go('s-list')"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+    <div class="title">تعديل الملف الشخصي</div>
+    <button class="ib" onclick="saveProfile()" aria-label="حفظ"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></button>
+  </div>
+  <div class="scroll">
+    <div class="camwrap">
+      <div class="av av96 cT" id="editAv" onclick="toast('يفتح معرض الصور لاختيار صورة')">أح
+        <span class="cam"><svg viewBox="0 0 24 24"><path d="M4 8h3l2-2.5h6L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span>
+      </div>
+      <button class="link" onclick="toast('يفتح معرض الصور لاختيار صورة')">تغيير الصورة</button>
+    </div>
+    <div class="form">
+      <div class="flabel">الاسم</div>
+      <input class="finput" id="editName" value="أستاذ حيدر">
+      <div class="flabel">النبذة</div>
+      <input class="finput" id="editBio" value="نرسل واجبات الصفوف الرابع والخامس والسادس أولاً بأول">
+      <div class="fnote">تظهر النبذة للأهالي في صفحة الأستاذ.</div>
+    </div>
+    <div class="sect" style="border-top:8px solid var(--soft)">
+      <button class="setrow" id="verRow" onclick="toggleVerified()">
+        <svg viewBox="0 0 24 24"><path d="M12 3 14.4 5l3.1-.4.9 3 2.7 1.7-1.4 2.7 1.4 2.8-2.7 1.6-.9 3-3.1-.4L12 21l-2.4-2-3.1.4-.9-3-2.7-1.6L4.3 12 2.9 9.3l2.7-1.7.9-3 3.1.4z"/><path d="m8.8 12 2.2 2.2 4.2-4.4"/></svg>
+        <div class="sv"><div class="s1">علامة التوثيق</div><div class="s2" id="verNote">يمنحها المطوّر فقط</div></div>
+        <div class="sw on" id="swVer"><i></i></div>
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 7. SETTINGS ===================== -->
+<section class="screen gray" id="s-settings">
+  <div class="bar">
+    <button class="ib" onclick="go('s-list')"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+    <div class="title">الإعدادات</div>
+  </div>
+  <div class="scroll">
+    <div class="sect">
+      <div class="sh">الإشعارات</div>
+      <button class="setrow" onclick="toggleSw('swN1')">
+        <svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>
+        <div class="sv"><div class="s1">إشعارات الواجبات</div><div class="s2">مفعّلة</div></div>
+        <div class="sw on" id="swN1"><i></i></div>
+      </button>
+      <button class="setrow" onclick="toggleSw('swN2')">
+        <svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></svg>
+        <div class="sv"><div class="s1">الصوت</div><div class="s2">الافتراضي</div></div>
+        <div class="sw on" id="swN2"><i></i></div>
+      </button>
+    </div>
+    <div class="sect">
+      <div class="sh">الطالب</div>
+      <button class="setrow" onclick="renameStudent()">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4.5 4.5-6.5 8-6.5s7 2 8 6.5"/></svg>
+        <div class="sv"><div class="s1" id="setName"></div><div class="s2">اسم الطالب — اضغط للتعديل</div></div>
+      </button>
+      <button class="setrow" onclick="changeSection()">
+        <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h6"/><path d="m16 15 3 3-3 3"/></svg>
+        <div class="sv"><div class="s1">تغيير الشعبة</div><div class="s2" id="mySection"></div></div>
+      </button>
+    </div>
+    <div class="sect">
+      <div class="sh">حول التطبيق</div>
+      <div class="setrow">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>
+        <div class="sv"><div class="s1">الإصدار</div><div class="s2">أستاذ حيدر 1.12</div></div>
+      </div>
+      <button class="setrow" onclick="toast('تم نسخ معرّف الجهاز')">
+        <svg viewBox="0 0 24 24"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></svg>
+        <div class="sv"><div class="s1" style="direction:ltr;text-align:right">7C41A0D3</div>
+          <div class="s2">معرّف الجهاز — لا تحتاجه عادةً. اضغط للنسخ.</div></div>
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 8. GRANT TEACHERS (developer) ===================== -->
+<section class="screen gray" id="s-grant">
+  <div class="bar">
+    <button class="ib" onclick="go('s-list')"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+    <div class="title">صلاحيات الأساتذة</div>
+  </div>
+  <div class="scroll">
+    <div class="sect">
+      <div class="form">
+        <div class="flabel" style="margin-top:0">معرّف جهاز الأستاذ</div>
+        <input class="finput" id="grantInput" placeholder="مثال: AF72C91B" style="direction:ltr;text-align:right">
+        <div class="fnote">يجده الأستاذ في الإعدادات ← حول التطبيق، ويرسله لك.</div>
+        <button class="btn" onclick="grant()">منح صلاحية الأستاذ</button>
+      </div>
+    </div>
+    <div class="sect">
+      <div class="sh">الأساتذة الحاليون</div>
+      <div id="grantList"></div>
+    </div>
+    <div class="fnote" style="padding:0 18px 20px">الأستاذ يستطيع النشر والتعديل مثلك تماماً، لكن لا يستطيع منح هذه الصلاحية لأحد.</div>
+  </div>
+</section>
+
+<!-- drawer -->
+<div class="scrim" id="scrim" onclick="closeDrawer()"></div>
+<aside class="drawer" id="drawer">
+  <div class="dhead">
+    <div class="av av64 cT" style="border:2px solid rgba(255,255,255,.3)">أح</div>
+    <div class="dn"><span class="tname">أستاذ حيدر</span><span class="vb"></span></div>
+    <div class="ds" id="drawerRole"></div>
+  </div>
+  <div style="overflow-y:auto;flex:1;display:flex;flex-direction:column">
+    <button class="ditem" onclick="closeDrawer();go('s-profile')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4.5 4.5-6.5 8-6.5s7 2 8 6.5"/></svg><span class="tname">أستاذ حيدر</span></button>
+    <button class="ditem" id="dChange" onclick="closeDrawer();changeSection()">
+      <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h6"/><path d="m16 15 3 3-3 3"/></svg>تغيير الشعبة</button>
+    <button class="ditem" onclick="closeDrawer();shareApp()">
+      <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="m8.2 10.8 7.6-4.4M8.2 13.2l7.6 4.4"/></svg>مشاركة التطبيق</button>
+    <button class="ditem" onclick="closeDrawer();go('s-settings')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>الإعدادات</button>
+    <div id="staffItems"></div>
+    <div class="dver">أستاذ حيدر · الإصدار 1.12</div>
+  </div>
+</aside>
+
+<!-- context menu for posts (staff) -->
+<div class="ctx" id="ctx" onclick="closeCtx(event)">
+  <div class="box">
+    <button class="it" onclick="ctxAct('views')" id="ctxViews">👁 شاهدها</button>
+    <button class="it" onclick="ctxAct('pin')">📌 تثبيت</button>
+    <button class="it" onclick="ctxAct('edit')">✏️ تعديل</button>
+    <button class="it" onclick="ctxAct('copy')">📋 نسخ النص</button>
+    <button class="it red" onclick="ctxAct('del')">🗑️ حذف</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+</div>
+
+<!-- preview only, not part of the app -->
+<div class="sim"><b>معاينة:</b>
+  <button id="r-parent" onclick="setRole('parent')">ولي أمر</button>
+  <button id="r-teacher" onclick="setRole('teacher')">أستاذ</button>
+  <button id="r-dev" onclick="setRole('dev')">مطوّر</button>
+</div>
+
+<script>
+var SECTIONS = [
+  {id:'s4',  name:'الصف الرابع',     short:'٤',  cls:'c4',  members:31},
+  {id:'s5a', name:'الخامس - أ',      short:'٥أ', cls:'c5a', members:28},
+  {id:'s5b', name:'الخامس - ب',      short:'٥ب', cls:'c5b', members:26},
+  {id:'s6a', name:'السادس - أ',      short:'٦أ', cls:'c6a', members:29},
+  {id:'s6b', name:'السادس - ب',      short:'٦ب', cls:'c6b', members:27}
+];
+var POSTS = {
+  s4:[
+    {day:'أمس', time:'٧:٤٠ م', views:29, text:'السلام عليكم، واجب الرياضيات: تمارين صفحة ٢٢ كاملة في دفتر الواجبات.'},
+    {day:'اليوم', time:'٨:١٥ م', views:24, img:'القراءة — الدرس الثالث\nحل الأسئلة ١ ، ٢ ، ٣\nحفظ النشيد', text:'واجب القراءة لليوم، مع حفظ النشيد للغد.'}
+  ],
+  s5a:[
+    {day:'أمس', time:'٦:٠٥ م', views:27, text:'تذكير: الاختبار القصير في العلوم يوم الخميس، الفصل الثاني.'},
+    {day:'اليوم', time:'٧:٣٠ م', views:21, img:'الإسلامية\nحفظ سورة الضحى\nتفسير الكلمات', text:'حفظ سورة الضحى وتفسير الكلمات الصعبة.'},
+    {day:'اليوم', time:'٨:٠٢ م', views:18, text:'واجب الإنكليزي: كتابة الكلمات الجديدة ٣ مرات، صفحة ١٤.'}
+  ],
+  s5b:[{day:'اليوم', time:'٧:٥٠ م', views:22, text:'قراءة درس (الوطن) وتلخيصه بخمسة أسطر، مع جلب القاموس غداً.'}],
+  s6a:[{day:'اليوم', time:'٦:٤٠ م', views:25, text:'حل أسئلة نهاية الفصل الثاني، علوم، صفحة ٣٠-٣١.'}],
+  s6b:[{day:'أمس', time:'٩:١٠ م', views:26, text:'مراجعة قواعد اللغة العربية (الفعل المضارع) استعداداً للاختبار.'}]
+};
+var NAMES = ['أحمد علي','زهراء حسين','محمد جاسم','فاطمة كريم','حسن عباس','مريم ستار','علي رعد','نور الهدى سالم','يوسف ماجد','رقية حيدر','عبدالله فاضل','سجى مهدي','كرار صادق','زينب قاسم','مصطفى نعمان','آية رحيم'];
+var ONLINE = {s4:4, s5a:5, s5b:3, s6a:6, s6b:2};
+var LASTSEEN = ['متصل الآن','متصل الآن','متصل الآن','متصل الآن','متصل الآن','آخر ظهور قبل ١٠ دقائق','آخر ظهور قبل ساعة','آخر ظهور اليوم ٤:٢٠ م','آخر ظهور أمس','آخر ظهور أمس','آخر ظهور قبل يومين','آخر ظهور قبل ٣ أيام','آخر ظهور قبل ٣ أيام','آخر ظهور قبل أسبوع','آخر ظهور قبل أسبوع','آخر ظهور قبل أسبوع'];
+var VTIMES = ['٨:٠٣ م','٨:٠٥ م','٨:٠٩ م','٨:١٤ م','٨:٢٠ م','٨:٣١ م','٨:٤٠ م','٩:٠٢ م','٩:١٥ م','٩:٤٤ م','١٠:٠١ م','١٠:٢٢ م','١٠:٣٠ م','١٠:٥٥ م','١١:١٠ م','١١:٣٠ م','١١:٤٥ م','١١:٥٠ م'];
+var studentName = '';
+var PINNED = {s4:'جدول الامتحانات الشهرية — يرجى الاطلاع', s5a:'جدول الامتحانات الشهرية — يرجى الاطلاع', s5b:'جدول الامتحانات الشهرية — يرجى الاطلاع', s6a:'جدول الامتحانات الشهرية — يرجى الاطلاع', s6b:'جدول الامتحانات الشهرية — يرجى الاطلاع'};
+var UNREAD = {s4:1, s5a:2, s5b:0, s6a:1, s6b:0};
+
+var role = 'parent';
+var mySection = null;
+var current = null;
+var verified = true;
+var ctxIndex = -1;
+
+function $(id){return document.getElementById(id)}
+function sec(id){for(var i=0;i<SECTIONS.length;i++) if(SECTIONS[i].id===id) return SECTIONS[i];}
+function staff(){return role==='teacher'||role==='dev'}
+function go(id){
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('on')});
+  $(id).classList.add('on');
+}
+function toast(m){var t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(t._h);t._h=setTimeout(function(){t.classList.remove('on')},2000)}
+function shareApp(){toast('تفتح قائمة المشاركة ويُرسل ملف التطبيق نفسه')}
+function toggleSw(id){$(id).classList.toggle('on')}
+
+var CHAN_ICO = '<svg class="chanico" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10v4h4l6 4V6L7 10z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg>';
+var VBADGE = '<svg class="vbadge" viewBox="0 0 24 24"><path d="M12 2.5 14.6 5l3.5-.6 1 3.4 3 1.9-1.6 3.1 1.6 3.1-3 1.9-1 3.4-3.5-.6L12 23l-2.6-2.5-3.5.6-1-3.4-3-1.9 1.6-3.1-1.6-3.1 3-1.9 1-3.4 3.5.6z" fill="#4ca3e0"/><path d="m8.5 12.3 2.4 2.4 4.6-5" stroke="#fff" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+var VBADGE_W = VBADGE.replace('#4ca3e0','#fff').replace('stroke="#fff"','stroke="#517da2"');
+
+function renderBadges(){
+  document.querySelectorAll('.vb').forEach(function(e){e.innerHTML = verified ? VBADGE_W : ''});
+}
+
+/* ---------- picker ---------- */
+function renderPick(){
+  $('pickList').innerHTML = SECTIONS.map(function(s){
+    return '<div class="row" onclick="pickSection(\''+s.id+'\')">'+
+      '<div class="av av54 '+s.cls+'">'+s.short+'</div>'+
+      '<div class="mid"><div class="l1"><div class="name">'+s.name+'</div></div>'+
+      '<div class="l2"><div class="prev">'+s.members+' عضو</div></div></div></div>';
+  }).join('');
+}
+function pickSection(id){
+  var n = $('studentName').value.trim();
+  if(!n && !staff()){ $('nameErr').style.display='block'; $('studentName').focus(); return }
+  if(n) studentName = n;
+  $('nameErr').style.display='none';
+  mySection = id;
+  try{localStorage.setItem('af_tg_section', id)}catch(e){}
+  renderList(); renderDrawer();
+  openChat(id);
+}
+function renameStudent(){
+  var n = prompt('اسم الطالب', studentName);
+  if(n && n.trim()){ studentName=n.trim(); renderSettings(); renderDrawer(); toast('تم تعديل الاسم') }
+}
+function renderSettings(){
+  $('setName').textContent = studentName || '—';
+  $('mySection').textContent = mySection ? sec(mySection).name : '';
+}
+function changeSection(){
+  $('studentName').value = studentName;
+  mySection = null;
+  try{localStorage.removeItem('af_tg_section')}catch(e){}
+  go('s-pick');
+}
+
+/* ---------- chat list ---------- */
+function lastOf(id){var p=POSTS[id];return p[p.length-1]}
+function renderList(){
+  var list = staff() ? SECTIONS : SECTIONS.filter(function(s){return s.id===mySection});
+  $('chatList').innerHTML = list.map(function(s){
+    var last = lastOf(s.id);
+    var prev = last.img ? '<b>صورة،</b> '+last.text : last.text;
+    var u = UNREAD[s.id];
+    return '<div class="row" onclick="openChat(\''+s.id+'\')">'+
+      '<div class="av av54 '+s.cls+'">'+s.short+'</div>'+
+      '<div class="mid"><div class="l1"><div class="name">'+CHAN_ICO+s.name+'</div><div class="time">'+last.time+'</div></div>'+
+      '<div class="l2"><div class="prev">'+prev+'</div>'+(u?'<div class="badge">'+u+'</div>':'')+'</div></div></div>';
+  }).join('') + (staff() ? '' : '<div class="hintsub" style="text-align:center;padding-top:18px">تصلك هنا واجبات صفّك فقط</div>');
+  renderSettings();
+}
+
+/* ---------- chat ---------- */
+function openChat(id){
+  current = id;
+  UNREAD[id] = 0;
+  var s = sec(id);
+  $('chatAv').className = 'av av42 '+s.cls; $('chatAv').textContent = s.short;
+  $('chatTitle').textContent = s.name;
+  $('chatSub').innerHTML = s.members+' عضو، <span style="color:#fff;font-weight:600">'+ONLINE[id]+' متصل</span>';
+  $('pinnedText').textContent = PINNED[id];
+  $('infoAv').className = 'av av64 '+s.cls; $('infoAv').textContent = s.short;
+  $('infoName').textContent = s.name;
+  $('infoSub').textContent = s.members+' عضو، '+ONLINE[id]+' متصل';
+  $('infoDesc').textContent = 'مجموعة واجبات '+s.name+' الابتدائي.';
+  renderInfoTabs(staff() ? 'members' : 'media');
+  renderMessages();
+  renderBottom();
+  renderList();
+  go('s-chat');
+}
+function renderMessages(){
+  var posts = POSTS[current], html='', lastDay='';
+  posts.forEach(function(p,i){
+    if(p.day!==lastDay){html+='<div class="datepill">'+p.day+'</div>';lastDay=p.day}
+    html += '<div class="msg"><div class="bubble" onclick="openCtx('+i+')">'+
+      '<div class="who">'+$('editName').value+(verified?VBADGE:'')+'</div>'+
+      (p.img?'<div class="hwimg" style="margin-top:6px"><div class="hand">'+p.img.replace(/\n/g,'<br>')+'</div></div>':'')+
+      '<div class="txt">'+p.text+'</div>'+
+      '<div class="meta"><span>'+p.time+(p.edited?' · معدّلة':'')+'</span><span class="eye" onclick="event.stopPropagation();openViews('+i+')"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.8"/></svg>'+p.views+'</span></div>'+
+      '</div></div>';
+  });
+  $('chatBody').innerHTML = html;
+  $('chatBody').scrollTop = 1e6;
+}
+var muted = false;
+function renderBottom(){
+  if(staff()){
+    $('chatBottom').innerHTML =
+      '<div class="gradetag">تنشر إلى: '+sec(current).name+'</div>'+
+      '<div class="inputbar">'+
+      '<button class="ib" onclick="toast(\'إرفاق صورة من المعرض أو الكاميرا\')"><svg viewBox="0 0 24 24"><path d="m20.5 11.5-8.3 8.3a5 5 0 0 1-7-7l8.3-8.3a3.3 3.3 0 0 1 4.7 4.7l-8.3 8.3a1.7 1.7 0 0 1-2.4-2.4l7.6-7.6"/></svg></button>'+
+      '<textarea class="field" id="msgField" rows="1" placeholder="اكتب الواجب…"></textarea>'+
+      '<button class="ib send" onclick="sendPost()"><svg viewBox="0 0 24 24"><path d="M3 11.5 21 4l-7.5 18-2.5-7.5z"/><path d="m11 14.5 4-4"/></svg></button>'+
+      '</div>';
+  } else {
+    $('chatBottom').innerHTML = '<button class="mutebar" style="width:100%" onclick="toggleMute()">'+(muted?'إلغاء الكتم':'كتم الإشعارات')+'</button>';
+  }
+}
+function toggleMute(){muted=!muted;renderBottom();toast(muted?'تم كتم الإشعارات':'تم تفعيل الإشعارات')}
+function sendPost(){
+  var t = $('msgField').value.trim();
+  if(!t){toast('اكتب نص الواجب أولاً');return}
+  POSTS[current].push({day:'اليوم', time:'الآن', views:0, text:t});
+  renderMessages(); renderList();
+  $('msgField').value='';
+  toast('أُرسل الواجب وتنبّه أهالي '+sec(current).name);
+}
+
+/* ---------- context menu (staff) ---------- */
+function openCtx(i){ if(!staff()) return; ctxIndex=i; $('ctxViews').textContent='👁 شاهدها '+POSTS[current][i].views+' — عرض الأسماء'; $('ctx').classList.add('on') }
+function openViews(i){
+  if(!staff()) return;
+  var p = POSTS[current][i], s = sec(current);
+  var seen = Math.min(p.views, NAMES.length);
+  var html = '<div class="listsec">شاهدها ('+p.views+')</div><div class="sect" style="margin:0">';
+  for(var k=0;k<seen;k++) html += memberRow(NAMES[k], 'شاهدها '+p.day+' '+VTIMES[k], false);
+  html += '</div>';
+  var notSeen = NAMES.slice(seen, seen+4);
+  if(notSeen.length){
+    html += '<div class="listsec">لم يشاهدها بعد ('+(s.members-p.views)+')</div><div class="sect" style="margin:0">';
+    notSeen.forEach(function(n,k){ html += memberRow(n, LASTSEEN[seen+k] || 'آخر ظهور قبل أسبوع', false) });
+    html += '</div>';
+  }
+  $('viewsTitle').textContent = 'المشاهدات · '+s.name;
+  $('viewsBody').innerHTML = html;
+  go('s-views');
+}
+function memberRow(name, sub, online){
+  var colors=['c4','c5a','c5b','c6a','c6b'];
+  var c = colors[name.length % 5];
+  return '<div class="row" style="padding:7px 14px"><div class="avwrap"><div class="av av42 '+c+'">'+name.trim().charAt(0)+'</div>'+(online?'<span class="dot"></span>':'')+'</div>'+
+    '<div class="mid" style="padding:4px 0 8px"><div class="l1"><div class="name" style="font-size:15.5px">'+name+'</div></div>'+
+    '<div class="l2"><div class="prev'+(online?' online':'')+'" style="font-size:13.5px">'+sub+'</div></div></div></div>';
+}
+function renderInfoTabs(tab){
+  var tabs = staff() ? [['members','الأعضاء'],['media','الصور']] : [['media','الصور']];
+  $('infoTabs').innerHTML = tabs.map(function(t){return '<div class="'+(t[0]===tab?'on':'')+'" onclick="renderInfoTabs(\''+t[0]+'\')">'+t[1]+'</div>'}).join('');
+  if(tab==='members'){
+    var s = sec(current);
+    $('infoTabBody').innerHTML = NAMES.map(function(n,k){ return memberRow(n, LASTSEEN[k], k<ONLINE[current]) }).join('') +
+      '<div class="fnote" style="padding:10px 18px 16px">و'+(s.members-NAMES.length)+' عضواً آخرين…</div>';
+  } else {
+    $('infoTabBody').innerHTML = '<div class="mediagrid"><div></div><div></div><div></div><div></div><div></div></div>';
+  }
+}
+function closeCtx(e){ if(e.target.id==='ctx') $('ctx').classList.remove('on') }
+function ctxAct(a){
+  $('ctx').classList.remove('on');
+  var p = POSTS[current][ctxIndex];
+  if(a==='del'){ POSTS[current].splice(ctxIndex,1); renderMessages(); renderList(); toast('حُذف الواجب') }
+  if(a==='pin'){ PINNED[current]=p.text; $('pinnedText').textContent=p.text; toast('تم تثبيت الرسالة') }
+  if(a==='copy'){ toast('تم نسخ النص') }
+  if(a==='views'){ openViews(ctxIndex) }
+  if(a==='edit'){ var n = prompt('تعديل الواجب', p.text); if(n){p.text=n;p.edited=true;renderMessages();renderList()} }
+}
+
+/* ---------- drawer ---------- */
+function openDrawer(){ $('scrim').classList.add('on'); $('drawer').classList.add('on') }
+function closeDrawer(){ $('scrim').classList.remove('on'); $('drawer').classList.remove('on') }
+function renderDrawer(){
+  var html='';
+  if(staff()){
+    html += '<div class="dsep"></div>'+
+      '<button class="ditem" onclick="closeDrawer();go(\'s-edit\')"><svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></svg>تعديل الملف الشخصي</button>';
+    if(role==='dev') html += '<button class="ditem" onclick="closeDrawer();renderGrant();go(\'s-grant\')"><svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M17 6l3 3M14 9l2 2"/></svg>صلاحيات الأساتذة</button>';
+  }
+  $('staffItems').innerHTML = html;
+  $('drawerRole').textContent = staff() ? 'كل الشعب' : (studentName ? studentName+' · ' : '')+(mySection?sec(mySection).name:'');
+  $('dChange').style.display = staff() ? 'none' : '';
+}
+
+/* ---------- edit profile ---------- */
+function toggleVerified(){
+  if(role!=='dev'){ toast('علامة التوثيق يمنحها المطوّر فقط'); return }
+  verified=!verified; $('swVer').classList.toggle('on',verified); renderBadges();
+}
+function saveProfile(){
+  var n=$('editName').value.trim()||'أستاذ حيدر';
+  document.querySelectorAll('.tname').forEach(function(e){e.textContent=n});
+  $('editBio').value && document.querySelectorAll('.tbio').forEach(function(e){e.textContent=$('editBio').value});
+  toast('حُفظ الملف الشخصي'); go('s-list');
+}
+function renderEdit(){
+  $('verNote').textContent = role==='dev' ? 'أنت المطوّر، يمكنك تفعيلها أو إلغاؤها' : 'يمنحها المطوّر فقط';
+  $('verRow').style.opacity = role==='dev' ? 1 : .55;
+  $('swVer').classList.toggle('on',verified);
+}
+
+/* ---------- grant (dev) ---------- */
+var TEACHERS = ['AF2217C9'];
+function renderGrant(){
+  $('grantList').innerHTML = TEACHERS.length ? TEACHERS.map(function(c,i){
+    return '<div class="setrow"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4.5 4.5-6.5 8-6.5s7 2 8 6.5"/></svg>'+
+      '<div class="sv"><div class="s1" style="direction:ltr;text-align:right">'+c+'</div><div class="s2">أستاذ</div></div>'+
+      '<button class="revoke" onclick="revoke('+i+')">سحب</button></div>';
+  }).join('') : '<div class="fnote" style="padding:14px 18px">لا يوجد أساتذة بعد</div>';
+}
+function grant(){
+  var c=$('grantInput').value.trim().toUpperCase();
+  if(c.length!==8){toast('المعرّف ٨ حروف وأرقام');return}
+  TEACHERS.push(c); $('grantInput').value=''; renderGrant(); toast('مُنحت صلاحية الأستاذ لهذا الجهاز');
+}
+function revoke(i){ TEACHERS.splice(i,1); renderGrant(); toast('سُحبت الصلاحية') }
+
+/* ---------- role (preview only) ---------- */
+function setRole(r){
+  role=r;
+  ['parent','teacher','dev'].forEach(function(x){$('r-'+x).classList.toggle('on',x===r)});
+  renderList(); renderDrawer(); renderEdit();
+  if(staff()){
+    if(!mySection) mySection='s5a';
+    go('s-list');
+  } else if(!mySection){
+    go('s-pick');
+  } else {
+    go('s-list');
+  }
+  if(current && $('s-chat').classList.contains('on')){renderBottom()}
+}
+
+/* ---------- start ---------- */
+renderPick(); renderBadges();
+try{ mySection = localStorage.getItem('af_tg_section') }catch(e){}
+setRole('parent');
+if(mySection) openChat(mySection);
+</script>
+</body>
+</html>
