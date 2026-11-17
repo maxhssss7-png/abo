@@ -23,7 +23,7 @@ jobs:
 
       - name: Write project files
         run: |
-          mkdir -p app/src/main/java/com/abufatima/app app/src/main/res/xml app/src/main/res/mipmap-xxxhdpi app/src/main/res/mipmap-anydpi-v26 app/src/main/res/drawable app/src/main/res/drawable-nodpi
+          mkdir -p app/src/main/java/com/abufatima/app app/src/main/res/xml app/src/main/res/mipmap app/src/main/res/mipmap-anydpi-v26 app/src/main/res/drawable
 
           cat > settings.gradle <<'EOF'
           include ':app'
@@ -148,22 +148,97 @@ jobs:
           </paths>
           EOF
 
+          cat > app/src/main/res/mipmap/ic_launcher.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="48dp"
+              android:height="48dp"
+              android:viewportWidth="512"
+              android:viewportHeight="512">
+              <path android:fillColor="#1E3560" android:pathData="M112,0 H400 A112,112 0 0 1 512,112 V400 A112,112 0 0 1 400,512 H112 A112,112 0 0 1 0,400 V112 A112,112 0 0 1 112,0 Z" />
+              <group android:pivotX="240" android:pivotY="268" android:rotation="-6">
+                  <path android:fillColor="#FFFFFF" android:pathData="M152,112 H336 A24,24 0 0 1 360,136 V388 A24,24 0 0 1 336,412 H152 A24,24 0 0 1 128,388 V136 A24,24 0 0 1 152,112 Z" />
+                  <path android:strokeColor="#CFDDEB" android:strokeWidth="7" android:pathData="M156,198 H332 M156,242 H332 M156,286 H332 M156,330 H332 M156,374 H332" />
+                  <path android:strokeColor="#EA9A9A" android:strokeWidth="6" android:pathData="M316,136 V404" />
+                  <path android:fillColor="#14223F" android:pathData="M164,112 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0 Z M210,112 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0 Z M256,112 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0 Z M302,112 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0 Z" />
+              </group>
+              <group android:translateX="330" android:translateY="250" android:rotation="36">
+                  <path android:fillColor="#E8747C" android:pathData="M-14,-150 H14 A10,10 0 0 1 24,-140 V-120 H-24 V-140 A10,10 0 0 1 -14,-150 Z" />
+                  <path android:fillColor="#C9D2DD" android:pathData="M-24,-124 H24 V-106 H-24 Z" />
+                  <path android:fillColor="#F5B83D" android:pathData="M-24,-108 H24 V62 H-24 Z" />
+                  <path android:fillColor="#E3A126" android:pathData="M-24,-108 H-8 V62 H-24 Z" />
+                  <path android:fillColor="#F6DDB0" android:pathData="M-24,62 L24,62 L0,112 Z" />
+                  <path android:fillColor="#2B3440" android:pathData="M-9,93 L9,93 L0,112 Z" />
+              </group>
+          </vector>
+          EOF
+
           cat > app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml <<'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
               <background android:drawable="@drawable/ic_launcher_background" />
-              <foreground android:drawable="@mipmap/ic_launcher_foreground" />
+              <foreground android:drawable="@drawable/ic_launcher_foreground" />
           </adaptive-icon>
           EOF
 
           cat > app/src/main/res/drawable/ic_launcher_background.xml <<'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-              <gradient
-                  android:angle="315"
-                  android:startColor="#2C4A7C"
-                  android:endColor="#14223F" />
+              <solid android:color="#1E3560" />
           </shape>
+          EOF
+
+          cat > app/src/main/res/drawable/ic_launcher_foreground.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="108dp"
+              android:height="108dp"
+              android:viewportWidth="512"
+              android:viewportHeight="512">
+              <group android:pivotX="256" android:pivotY="256" android:scaleX="0.8" android:scaleY="0.8" android:translateY="-4">
+                  <group android:pivotX="240" android:pivotY="268" android:rotation="-6">
+                      <path android:fillColor="#FFFFFF" android:pathData="M152,112 H336 A24,24 0 0 1 360,136 V388 A24,24 0 0 1 336,412 H152 A24,24 0 0 1 128,388 V136 A24,24 0 0 1 152,112 Z" />
+                      <path android:strokeColor="#CFDDEB" android:strokeWidth="7" android:pathData="M156,198 H332 M156,242 H332 M156,286 H332 M156,330 H332 M156,374 H332" />
+                      <path android:strokeColor="#EA9A9A" android:strokeWidth="6" android:pathData="M316,136 V404" />
+                      <path android:fillColor="#14223F" android:pathData="M164,112 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0 Z M210,112 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0 Z M256,112 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0 Z M302,112 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0 Z" />
+                  </group>
+                  <group android:translateX="330" android:translateY="250" android:rotation="36">
+                      <path android:fillColor="#E8747C" android:pathData="M-14,-150 H14 A10,10 0 0 1 24,-140 V-120 H-24 V-140 A10,10 0 0 1 -14,-150 Z" />
+                      <path android:fillColor="#C9D2DD" android:pathData="M-24,-124 H24 V-106 H-24 Z" />
+                      <path android:fillColor="#F5B83D" android:pathData="M-24,-108 H24 V62 H-24 Z" />
+                      <path android:fillColor="#E3A126" android:pathData="M-24,-108 H-8 V62 H-24 Z" />
+                      <path android:fillColor="#F6DDB0" android:pathData="M-24,62 L24,62 L0,112 Z" />
+                      <path android:fillColor="#2B3440" android:pathData="M-9,93 L9,93 L0,112 Z" />
+                  </group>
+              </group>
+          </vector>
+          EOF
+
+          cat > app/src/main/res/drawable/logo_circle.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="64dp"
+              android:height="64dp"
+              android:viewportWidth="512"
+              android:viewportHeight="512">
+              <path android:fillColor="#1E3560" android:pathData="M0,256 a256,256 0 1,0 512,0 a256,256 0 1,0 -512,0 Z" />
+              <group android:pivotX="256" android:pivotY="256" android:scaleX="0.78" android:scaleY="0.78" android:translateY="-5">
+                  <group android:pivotX="240" android:pivotY="268" android:rotation="-6">
+                      <path android:fillColor="#FFFFFF" android:pathData="M152,112 H336 A24,24 0 0 1 360,136 V388 A24,24 0 0 1 336,412 H152 A24,24 0 0 1 128,388 V136 A24,24 0 0 1 152,112 Z" />
+                      <path android:strokeColor="#CFDDEB" android:strokeWidth="7" android:pathData="M156,198 H332 M156,242 H332 M156,286 H332 M156,330 H332 M156,374 H332" />
+                      <path android:strokeColor="#EA9A9A" android:strokeWidth="6" android:pathData="M316,136 V404" />
+                      <path android:fillColor="#14223F" android:pathData="M164,112 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0 Z M210,112 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0 Z M256,112 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0 Z M302,112 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0 Z" />
+                  </group>
+                  <group android:translateX="330" android:translateY="250" android:rotation="36">
+                      <path android:fillColor="#E8747C" android:pathData="M-14,-150 H14 A10,10 0 0 1 24,-140 V-120 H-24 V-140 A10,10 0 0 1 -14,-150 Z" />
+                      <path android:fillColor="#C9D2DD" android:pathData="M-24,-124 H24 V-106 H-24 Z" />
+                      <path android:fillColor="#F5B83D" android:pathData="M-24,-108 H24 V62 H-24 Z" />
+                      <path android:fillColor="#E3A126" android:pathData="M-24,-108 H-8 V62 H-24 Z" />
+                      <path android:fillColor="#F6DDB0" android:pathData="M-24,62 L24,62 L0,112 Z" />
+                      <path android:fillColor="#2B3440" android:pathData="M-9,93 L9,93 L0,112 Z" />
+                  </group>
+              </group>
+          </vector>
           EOF
 
           cat > app/src/main/java/com/abufatima/app/Fb.kt <<'EOF'
@@ -743,10 +818,14 @@ jobs:
 
               private fun teacherAvatar(size: Int, photo: String? = profPhoto): View {
                   val iv = ImageView(this)
-                  val bmp = decodePhoto(photo) ?: BitmapFactory.decodeResource(resources, R.drawable.logo_circle)
-                  val rd = RoundedBitmapDrawableFactory.create(resources, bmp)
-                  rd.isCircular = true
-                  iv.setImageDrawable(rd)
+                  val bmp = decodePhoto(photo)
+                  if (bmp != null) {
+                      val rd = RoundedBitmapDrawableFactory.create(resources, bmp)
+                      rd.isCircular = true
+                      iv.setImageDrawable(rd)
+                  } else {
+                      iv.setImageResource(R.drawable.logo_circle)
+                  }
                   iv.scaleType = ImageView.ScaleType.CENTER_CROP
                   iv.layoutParams = LinearLayout.LayoutParams(dp(size), dp(size))
                   return iv
@@ -1968,89 +2047,4 @@ jobs:
                               dlg.dismiss()
                               val uri = FileProvider.getUriForFile(this, "$packageName.files", file)
                               val i = Intent(Intent.ACTION_VIEW)
-                              i.setDataAndType(uri, "application/vnd.android.package-archive")
-                              i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
-                              startActivity(i)
-                          }
-                      } catch (e: Exception) {
-                          runOnUiThread {
-                              dlg.dismiss()
-                              toast("فشل تنزيل التحديث. حاول لاحقاً.")
-                          }
-                      }
-                  }.start()
-              }
-          }
-          EOF
-
-          base64 -d > app/src/main/res/mipmap-xxxhdpi/ic_launcher.png <<'EOF'
-          iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAMAAABlApw1AAABgFBMVEUfL1fgo5upjlbbpFncyqBX
-          aIWRbl3VbnghN2BnX2NqamokLD4gNl4AVaqbl4/leYIrMz4nTmNVVaqRcje3iTTfoi7WucIZKkz+
-          /v4jO2UnQnAdMlcgNl0AAAD0tzzN2+njoifY4+7n6vDpdHz13K8TIT7K0tzplpUaNWMKGDdpd5GN
-          mKsAAH+vt8bhnBrrqKjJytPxuEfnjY302NYAVVXttrfxxsdJWXVVZ4abpLYAPj55hJkAf3/iniP5
-          47i9w88AAFUpR3f/wDv56cwAAP8VJEMcNlkeNFo9UXZ7iqTxx3T11JQXJUYVJEMzPHQKHkMVJUQe
-          NVseM1kdMlg3QlcpRXIpRnYpRnZGRWJXYngADCwVJEMeM1khOGEqRnYqRngtTIClrbvpbnYeM1ki
-          LDghOGEhOWJUVFGEVGvYp0T88dwWHj0VJEMgNl6FjJmytLfqvWUAAD8gNl4hOGEpRnZCSVNqTGd3
-          aEmDjqK0Y3PYnCrVtL32wlnxzYoSLmAcOWgVrP51AAAAgHRSTlMf/////////2T/AhfKA////wYD
-          //////7//v7+/gD//////////////////wL/////////A///////BP8C////A63//wGvEaz/////
-          JpMO/84slcz/GFbN////VVapLJT///9p/1fP/////w5pkv///wS4lm//////////////EfkRg0kA
-          AA1tSURBVHja1Z2Je9O2G8ddCgy2wW+34qtO3TZNc9AUCkmP9aClJxR6QClX4VeuMa6N+9j41yfJ
-          diI7siPJsolfng1m9jz9fqSv9Oq1JVsxQ2NxYxr9dufa6/ndXS1WqALx8OHtYw8UpGB6cjFcpRL2
-          F9NI/ca1/ZjShfV7GK8ebEAh4xVOgOlx07x6bV7Tvq58J24jhvFpDoBFKP/OvqZ1h34Ur6DO8UVW
-          AMh7Z17TugkAdsOmaU4yAUC3Xd3vNvm4F5awuE4AJ0zztXa3C/XDOAZ91AnghHlVnnvk6jegj5Q2
-          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
-          H9T6c6bJDGBWIMLSwTILQwqN/xS
+                              i.setDataAndType(uri, "application
