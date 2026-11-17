@@ -59,8 +59,8 @@ jobs:
                   applicationId "com.abufatima.app"
                   minSdk 21
                   targetSdk 34
-                  versionCode 1
-                  versionName "0.1"
+                  versionCode 2
+                  versionName "0.2"
               }
               compileOptions {
                   sourceCompatibility JavaVersion.VERSION_17
@@ -68,6 +68,20 @@ jobs:
               }
               kotlinOptions {
                   jvmTarget = '17'
+              }
+              signingConfigs {
+                  release {
+                      storeFile file(System.getenv("KS_PATH"))
+                      storePassword System.getenv("KS_PASS")
+                      keyAlias "abufatima"
+                      keyPassword System.getenv("KS_PASS")
+                  }
+              }
+              buildTypes {
+                  release {
+                      minifyEnabled false
+                      signingConfig signingConfigs.release
+                  }
               }
           }
 
@@ -102,6 +116,7 @@ jobs:
           import android.content.Context
           import android.graphics.Typeface
           import android.os.Bundle
+          import android.provider.Settings
           import android.view.Gravity
           import android.widget.Button
           import android.widget.LinearLayout
@@ -114,12 +129,8 @@ jobs:
               override fun onCreate(savedInstanceState: Bundle?) {
                   super.onCreate(savedInstanceState)
 
-                  val prefs = getSharedPreferences("abufatima", Context.MODE_PRIVATE)
-                  var deviceId = prefs.getString("device_id", null)
-                  if (deviceId == null) {
-                      deviceId = UUID.randomUUID().toString().substring(0, 8).uppercase()
-                      prefs.edit().putString("device_id", deviceId).apply()
-                  }
+                  val androidId = Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID)
+                  val deviceId = (androidId ?: UUID.randomUUID().toString()).take(8).uppercase()
 
                   val padding = (24 * resources.displayMetrics.density).toInt()
 
@@ -177,11 +188,17 @@ jobs:
         with:
           gradle-version: '8.4'
 
+      - name: Decode signing key
+        run: echo "${{ secrets.KEYSTORE_B64 }}" | base64 -d > "$RUNNER_TEMP/abufatima.jks"
+
       - name: Build APK
-        run: gradle assembleDebug --stacktrace
+        env:
+          KS_PATH: ${{ runner.temp }}/abufatima.jks
+          KS_PASS: ${{ secrets.KEYSTORE_PASSWORD }}
+        run: gradle assembleRelease --stacktrace
 
       - name: Rename APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk abufatima.apk
+        run: cp app/build/outputs/apk/release/app-release.apk abufatima.apk
 
       - name: Publish APK as release
         uses: softprops/action-gh-release@v2
