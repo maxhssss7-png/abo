@@ -62,6 +62,13 @@ jobs:
                   versionCode 1
                   versionName "0.1"
               }
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_17
+                  targetCompatibility JavaVersion.VERSION_17
+              }
+              kotlinOptions {
+                  jvmTarget = '17'
+              }
           }
 
           dependencies {
@@ -76,7 +83,7 @@ jobs:
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <application
                   android:label="ابو فاطمة"
-                  android:theme="@android:style/Theme.Material.Light">
+                  android:theme="@style/Theme.AppCompat.Light.DarkActionBar">
                   <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
